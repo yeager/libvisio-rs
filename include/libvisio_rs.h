@@ -119,33 +119,45 @@ extern "C" {
 
 /**
  * Open and parse a Visio file. Returns null on error.
+ * # Safety
+ * `path` must be a valid null-terminated C string.
  */
 LIBVISIO_API struct VisioDocument *visio_open(const char *path);
 
 /**
  * Get the number of pages.
+ * # Safety
+ * `doc` must be a valid pointer returned by `visio_open`.
  */
 LIBVISIO_API uintptr_t visio_get_page_count(const struct VisioDocument *doc);
 
 /**
  * Convert a page to SVG. Returns null on error.
  * Caller must free with visio_free_string.
+ * # Safety
+ * `doc` must be a valid pointer returned by `visio_open`.
  */
 LIBVISIO_API char *visio_convert_page_to_svg(const struct VisioDocument *doc, uintptr_t page);
 
 /**
  * Extract all text from the document.
  * Caller must free with visio_free_string.
+ * # Safety
+ * `doc` must be a valid pointer returned by `visio_open`.
  */
 LIBVISIO_API char *visio_extract_text(const struct VisioDocument *doc);
 
 /**
  * Free a VisioDocument handle.
+ * # Safety
+ * `doc` must be a valid pointer from `visio_open`, or null.
  */
 LIBVISIO_API void visio_free(struct VisioDocument *doc);
 
 /**
  * Free a string returned by visio_convert_page_to_svg or visio_extract_text.
+ * # Safety
+ * `s` must be a valid pointer returned by a `visio_*` function, or null.
  */
 LIBVISIO_API void visio_free_string(char *s);
 

@@ -37,7 +37,7 @@ fn cell_val(node: &roxmltree::Node, cell_name: &str) -> String {
 /// Parse a complete .vsdx file from bytes.
 pub fn parse_vsdx(data: &[u8]) -> Result<Document> {
     let cursor = Cursor::new(data);
-    let mut zip = zip::ZipArchive::new(cursor).map_err(|e| VisioError::Zip(e))?;
+    let mut zip = zip::ZipArchive::new(cursor).map_err(VisioError::Zip)?;
 
     let mut doc = Document::default();
 
@@ -838,10 +838,8 @@ fn collect_text(node: &roxmltree::Node) -> String {
         text.push_str(t);
     }
     for child in node.children() {
-        if child.is_element() {
-            if child.tag_name().name() == "fld" {
-                text.push_str(&collect_text(&child));
-            }
+        if child.is_element() && child.tag_name().name() == "fld" {
+            text.push_str(&collect_text(&child));
         }
         if let Some(tail) = child.tail() {
             text.push_str(tail);

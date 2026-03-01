@@ -1,3 +1,13 @@
+#![allow(
+    unused_assignments,
+    clippy::too_many_arguments,
+    clippy::type_complexity,
+    clippy::only_used_in_recursion,
+    clippy::collapsible_else_if,
+    clippy::collapsible_if,
+    clippy::if_same_then_else,
+    clippy::field_reassign_with_default
+)]
 //! libvisio-rs — A Rust library for parsing Microsoft Visio files and converting to SVG.
 //!
 //! Supports both .vsdx (ZIP+XML, Open Packaging) and .vsd (OLE2 binary) formats.
@@ -216,7 +226,9 @@ pub struct VisioDocument {
 
 /// Open and parse a Visio file. Returns null on error.
 #[no_mangle]
-pub extern "C" fn visio_open(path: *const c_char) -> *mut VisioDocument {
+/// # Safety
+/// `path` must be a valid null-terminated C string.
+pub unsafe extern "C" fn visio_open(path: *const c_char) -> *mut VisioDocument {
     if path.is_null() {
         return std::ptr::null_mut();
     }
@@ -232,7 +244,9 @@ pub extern "C" fn visio_open(path: *const c_char) -> *mut VisioDocument {
 
 /// Get the number of pages.
 #[no_mangle]
-pub extern "C" fn visio_get_page_count(doc: *const VisioDocument) -> usize {
+/// # Safety
+/// `doc` must be a valid pointer returned by `visio_open`.
+pub unsafe extern "C" fn visio_get_page_count(doc: *const VisioDocument) -> usize {
     if doc.is_null() {
         return 0;
     }
@@ -242,7 +256,12 @@ pub extern "C" fn visio_get_page_count(doc: *const VisioDocument) -> usize {
 /// Convert a page to SVG. Returns null on error.
 /// Caller must free with visio_free_string.
 #[no_mangle]
-pub extern "C" fn visio_convert_page_to_svg(doc: *const VisioDocument, page: usize) -> *mut c_char {
+/// # Safety
+/// `doc` must be a valid pointer returned by `visio_open`.
+pub unsafe extern "C" fn visio_convert_page_to_svg(
+    doc: *const VisioDocument,
+    page: usize,
+) -> *mut c_char {
     if doc.is_null() {
         return std::ptr::null_mut();
     }
@@ -280,7 +299,9 @@ pub extern "C" fn visio_convert_page_to_svg(doc: *const VisioDocument, page: usi
 /// Extract all text from the document.
 /// Caller must free with visio_free_string.
 #[no_mangle]
-pub extern "C" fn visio_extract_text(doc: *const VisioDocument) -> *mut c_char {
+/// # Safety
+/// `doc` must be a valid pointer returned by `visio_open`.
+pub unsafe extern "C" fn visio_extract_text(doc: *const VisioDocument) -> *mut c_char {
     if doc.is_null() {
         return std::ptr::null_mut();
     }
@@ -308,8 +329,10 @@ pub extern "C" fn visio_extract_text(doc: *const VisioDocument) -> *mut c_char {
 }
 
 /// Free a VisioDocument handle.
+/// # Safety
+/// `doc` must be a valid pointer from `visio_open`, or null.
 #[no_mangle]
-pub extern "C" fn visio_free(doc: *mut VisioDocument) {
+pub unsafe extern "C" fn visio_free(doc: *mut VisioDocument) {
     if !doc.is_null() {
         unsafe {
             let _ = Box::from_raw(doc);
@@ -319,7 +342,9 @@ pub extern "C" fn visio_free(doc: *mut VisioDocument) {
 
 /// Free a string returned by visio_convert_page_to_svg or visio_extract_text.
 #[no_mangle]
-pub extern "C" fn visio_free_string(s: *mut c_char) {
+/// # Safety
+/// `s` must be a valid pointer returned by a `visio_*` function, or null.
+pub unsafe extern "C" fn visio_free_string(s: *mut c_char) {
     if !s.is_null() {
         unsafe {
             let _ = CString::from_raw(s);

@@ -1125,14 +1125,12 @@ fn render_shape_svg(
         } else {
             "none".to_string()
         }
+    } else if !fill_foregnd.is_empty() {
+        fill_foregnd.clone()
+    } else if !fill_bkgnd.is_empty() {
+        fill_bkgnd.clone()
     } else {
-        if !fill_foregnd.is_empty() {
-            fill_foregnd.clone()
-        } else if !fill_bkgnd.is_empty() {
-            fill_bkgnd.clone()
-        } else {
-            "none".to_string()
-        }
+        "none".to_string()
     };
 
     let stroke = if line_pattern != 0 {

@@ -21,7 +21,7 @@ pub fn parse_vsd(data: &[u8]) -> Result<Document> {
             .map_err(|e| VisioError::Cfb(format!("Cannot open VisioDocument stream: {}", e)))?;
         stream
             .read_to_end(&mut stream_data)
-            .map_err(|e| VisioError::Io(e))?;
+            .map_err(VisioError::Io)?;
     }
 
     let mut parser = VsdParser::new(&stream_data);

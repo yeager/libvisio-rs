@@ -254,16 +254,14 @@ pub fn vsd_shape_to_model(
                     cells.insert("E".to_string(), CellValue::new(pts_str, "NURBS(...)"));
                 }
             }
-            if row.row_type == "PolylineTo" {
-                if !row.points.is_empty() {
-                    let pts_str: String = row
-                        .points
-                        .iter()
-                        .map(|p| format!("{},{}", p.0, p.1))
-                        .collect::<Vec<_>>()
-                        .join(";");
-                    cells.insert("A".to_string(), CellValue::new(pts_str, "POLYLINE(...)"));
-                }
+            if row.row_type == "PolylineTo" && !row.points.is_empty() {
+                let pts_str: String = row
+                    .points
+                    .iter()
+                    .map(|p| format!("{},{}", p.0, p.1))
+                    .collect::<Vec<_>>()
+                    .join(";");
+                cells.insert("A".to_string(), CellValue::new(pts_str, "POLYLINE(...)"));
             }
             geo.rows.push(GeomRow {
                 row_type: row.row_type.clone(),

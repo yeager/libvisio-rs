@@ -82,6 +82,7 @@ pub fn evaluate_nurbs_curve(
                 } else {
                     0.0
                 };
+                #[allow(clippy::needless_range_loop)]
                 for k in 0..3 {
                     d[j][k] = (1.0 - alpha) * d[j - 1][k] + alpha * d[j][k];
                 }
