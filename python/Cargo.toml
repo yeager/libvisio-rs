@@ -1,0 +1,14 @@
+[package]
+name = "libvisio-ng-python"
+version = "0.1.0"
+edition = "2021"
+authors = ["Daniel Nylander <daniel@danielnylander.se>"]
+license = "GPL-3.0-or-later"
+
+[lib]
+name = "libvisio_ng"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.22", features = ["extension-module"] }
+libvisio-rs = { path = ".." }

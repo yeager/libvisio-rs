@@ -1,0 +1,38 @@
+[package]
+name = "libvisio-rs"
+version = "0.1.0"
+edition = "2021"
+authors = ["Daniel Nylander <daniel@danielnylander.se>"]
+license = "GPL-3.0-or-later"
+description = "A Rust library for parsing Microsoft Visio files (.vsdx and .vsd) and converting to SVG"
+repository = "https://github.com/yeager/libvisio-rs"
+readme = "README.md"
+keywords = ["visio", "vsdx", "vsd", "svg", "converter"]
+categories = ["parser-implementations", "graphics"]
+
+[lib]
+name = "libvisio_rs"
+crate-type = ["lib", "cdylib", "staticlib"]
+
+[[bin]]
+name = "visio2svg"
+path = "src/bin/visio2svg.rs"
+
+[dependencies]
+zip = "2"
+roxmltree = "0.20"
+cfb = "0.10"
+base64 = "0.22"
+thiserror = "2"
+miniz_oxide = "0.8"
+
+[build-dependencies]
+cbindgen = "0.27"
+
+[dev-dependencies]
+tempfile = "3"
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true
