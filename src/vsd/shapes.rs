@@ -2,9 +2,9 @@
 //!
 //! Converts VSD binary parsed data into the common Shape model.
 
-use std::collections::HashMap;
-use base64::Engine;
 use crate::model::*;
+use base64::Engine;
+use std::collections::HashMap;
 
 /// Convert VSD binary shape data to the common Shape model dict format.
 /// This is called by the VSD parser after reading the binary stream.
@@ -36,27 +36,63 @@ pub fn vsd_shape_to_model(
     shape.shape_type = shape_type.to_string();
 
     // XForm cells
-    shape.cells.insert("PinX".to_string(), CellValue::val(xform.pin_x.to_string()));
-    shape.cells.insert("PinY".to_string(), CellValue::val(xform.pin_y.to_string()));
-    shape.cells.insert("Width".to_string(), CellValue::val(xform.width.to_string()));
-    shape.cells.insert("Height".to_string(), CellValue::val(xform.height.to_string()));
-    shape.cells.insert("LocPinX".to_string(), CellValue::val(xform.loc_pin_x.to_string()));
-    shape.cells.insert("LocPinY".to_string(), CellValue::val(xform.loc_pin_y.to_string()));
-    shape.cells.insert("Angle".to_string(), CellValue::val(xform.angle.to_string()));
-    if xform.flip_x { shape.cells.insert("FlipX".to_string(), CellValue::val("1")); }
-    if xform.flip_y { shape.cells.insert("FlipY".to_string(), CellValue::val("1")); }
+    shape
+        .cells
+        .insert("PinX".to_string(), CellValue::val(xform.pin_x.to_string()));
+    shape
+        .cells
+        .insert("PinY".to_string(), CellValue::val(xform.pin_y.to_string()));
+    shape
+        .cells
+        .insert("Width".to_string(), CellValue::val(xform.width.to_string()));
+    shape.cells.insert(
+        "Height".to_string(),
+        CellValue::val(xform.height.to_string()),
+    );
+    shape.cells.insert(
+        "LocPinX".to_string(),
+        CellValue::val(xform.loc_pin_x.to_string()),
+    );
+    shape.cells.insert(
+        "LocPinY".to_string(),
+        CellValue::val(xform.loc_pin_y.to_string()),
+    );
+    shape
+        .cells
+        .insert("Angle".to_string(), CellValue::val(xform.angle.to_string()));
+    if xform.flip_x {
+        shape.cells.insert("FlipX".to_string(), CellValue::val("1"));
+    }
+    if xform.flip_y {
+        shape.cells.insert("FlipY".to_string(), CellValue::val("1"));
+    }
 
     // Line/fill cells
-    shape.cells.insert("LineWeight".to_string(), CellValue::val(line_weight.to_string()));
-    shape.cells.insert("LineColor".to_string(), CellValue::val(line_color));
-    shape.cells.insert("LinePattern".to_string(), CellValue::val(line_pattern.to_string()));
+    shape.cells.insert(
+        "LineWeight".to_string(),
+        CellValue::val(line_weight.to_string()),
+    );
+    shape
+        .cells
+        .insert("LineColor".to_string(), CellValue::val(line_color));
+    shape.cells.insert(
+        "LinePattern".to_string(),
+        CellValue::val(line_pattern.to_string()),
+    );
     if !fill_fg.is_empty() {
-        shape.cells.insert("FillForegnd".to_string(), CellValue::val(fill_fg));
+        shape
+            .cells
+            .insert("FillForegnd".to_string(), CellValue::val(fill_fg));
     }
     if !fill_bg.is_empty() {
-        shape.cells.insert("FillBkgnd".to_string(), CellValue::val(fill_bg));
+        shape
+            .cells
+            .insert("FillBkgnd".to_string(), CellValue::val(fill_bg));
     }
-    shape.cells.insert("FillPattern".to_string(), CellValue::val(fill_pattern.to_string()));
+    shape.cells.insert(
+        "FillPattern".to_string(),
+        CellValue::val(fill_pattern.to_string()),
+    );
 
     // Text
     shape.text = text.to_string();
@@ -70,62 +106,108 @@ pub fn vsd_shape_to_model(
 
     // TextXForm
     if let Some(txf) = text_xform {
-        shape.cells.insert("TxtPinX".to_string(), CellValue::val(txf.txt_pin_x.to_string()));
-        shape.cells.insert("TxtPinY".to_string(), CellValue::val(txf.txt_pin_y.to_string()));
-        shape.cells.insert("TxtWidth".to_string(), CellValue::val(txf.txt_width.to_string()));
-        shape.cells.insert("TxtHeight".to_string(), CellValue::val(txf.txt_height.to_string()));
+        shape.cells.insert(
+            "TxtPinX".to_string(),
+            CellValue::val(txf.txt_pin_x.to_string()),
+        );
+        shape.cells.insert(
+            "TxtPinY".to_string(),
+            CellValue::val(txf.txt_pin_y.to_string()),
+        );
+        shape.cells.insert(
+            "TxtWidth".to_string(),
+            CellValue::val(txf.txt_width.to_string()),
+        );
+        shape.cells.insert(
+            "TxtHeight".to_string(),
+            CellValue::val(txf.txt_height.to_string()),
+        );
     }
 
     // XForm1D
     if let Some(xf1d) = xform_1d {
-        shape.cells.insert("BeginX".to_string(), CellValue::val(xf1d.begin_x.to_string()));
-        shape.cells.insert("BeginY".to_string(), CellValue::val(xf1d.begin_y.to_string()));
-        shape.cells.insert("EndX".to_string(), CellValue::val(xf1d.end_x.to_string()));
-        shape.cells.insert("EndY".to_string(), CellValue::val(xf1d.end_y.to_string()));
+        shape.cells.insert(
+            "BeginX".to_string(),
+            CellValue::val(xf1d.begin_x.to_string()),
+        );
+        shape.cells.insert(
+            "BeginY".to_string(),
+            CellValue::val(xf1d.begin_y.to_string()),
+        );
+        shape
+            .cells
+            .insert("EndX".to_string(), CellValue::val(xf1d.end_x.to_string()));
+        shape
+            .cells
+            .insert("EndY".to_string(), CellValue::val(xf1d.end_y.to_string()));
     }
 
     // Shadow
     if !shadow_color.is_empty() {
-        shape.cells.insert("ShdwForegnd".to_string(), CellValue::val(shadow_color));
+        shape
+            .cells
+            .insert("ShdwForegnd".to_string(), CellValue::val(shadow_color));
     }
     if shadow_pattern != 0 {
-        shape.cells.insert("ShdwPattern".to_string(), CellValue::val(shadow_pattern.to_string()));
+        shape.cells.insert(
+            "ShdwPattern".to_string(),
+            CellValue::val(shadow_pattern.to_string()),
+        );
     }
     if shadow_offset_x != 0.0 {
-        shape.cells.insert("ShdwOffsetX".to_string(), CellValue::val(shadow_offset_x.to_string()));
+        shape.cells.insert(
+            "ShdwOffsetX".to_string(),
+            CellValue::val(shadow_offset_x.to_string()),
+        );
     }
     if shadow_offset_y != 0.0 {
-        shape.cells.insert("ShdwOffsetY".to_string(), CellValue::val(shadow_offset_y.to_string()));
+        shape.cells.insert(
+            "ShdwOffsetY".to_string(),
+            CellValue::val(shadow_offset_y.to_string()),
+        );
     }
 
     // Layer
     if !layer_member.is_empty() {
-        shape.cells.insert("LayerMember".to_string(), CellValue::val(layer_member));
+        shape
+            .cells
+            .insert("LayerMember".to_string(), CellValue::val(layer_member));
     }
 
     // Character formats
     for (i, cf) in char_formats.iter().enumerate() {
-        shape.char_formats.insert(i.to_string(), CharFormat {
-            size: if cf.font_size > 0.0 { (cf.font_size / 72.0).to_string() } else { "0.1111".to_string() },
-            color: format!("#{:02X}{:02X}{:02X}", cf.color_r, cf.color_g, cf.color_b),
-            style: ((if cf.bold { 1 } else { 0 })
-                | (if cf.italic { 2 } else { 0 })
-                | (if cf.underline { 4 } else { 0 })).to_string(),
-            font: String::new(),
-        });
+        shape.char_formats.insert(
+            i.to_string(),
+            CharFormat {
+                size: if cf.font_size > 0.0 {
+                    (cf.font_size / 72.0).to_string()
+                } else {
+                    "0.1111".to_string()
+                },
+                color: format!("#{:02X}{:02X}{:02X}", cf.color_r, cf.color_g, cf.color_b),
+                style: ((if cf.bold { 1 } else { 0 })
+                    | (if cf.italic { 2 } else { 0 })
+                    | (if cf.underline { 4 } else { 0 }))
+                .to_string(),
+                font: String::new(),
+            },
+        );
     }
 
     // Paragraph formats
     for (i, pf) in para_formats.iter().enumerate() {
-        shape.para_formats.insert(i.to_string(), ParaFormat {
-            horiz_align: pf.horiz_align.to_string(),
-            indent_first: pf.indent_first.to_string(),
-            indent_left: pf.indent_left.to_string(),
-            indent_right: pf.indent_right.to_string(),
-            bullet: pf.bullet.to_string(),
-            sp_line: pf.spacing_line.to_string(),
-            ..ParaFormat::default()
-        });
+        shape.para_formats.insert(
+            i.to_string(),
+            ParaFormat {
+                horiz_align: pf.horiz_align.to_string(),
+                indent_first: pf.indent_first.to_string(),
+                indent_left: pf.indent_left.to_string(),
+                indent_right: pf.indent_right.to_string(),
+                bullet: pf.bullet.to_string(),
+                sp_line: pf.spacing_line.to_string(),
+                ..ParaFormat::default()
+            },
+        );
     }
 
     // Geometry
@@ -141,18 +223,31 @@ pub fn vsd_shape_to_model(
             let mut cells = HashMap::new();
             cells.insert("X".to_string(), CellValue::val(row.x.to_string()));
             cells.insert("Y".to_string(), CellValue::val(row.y.to_string()));
-            if matches!(row.row_type.as_str(), "ArcTo" | "Ellipse" | "EllipticalArcTo" | "SplineStart" | "SplineKnot" | "InfiniteLine") {
+            if matches!(
+                row.row_type.as_str(),
+                "ArcTo"
+                    | "Ellipse"
+                    | "EllipticalArcTo"
+                    | "SplineStart"
+                    | "SplineKnot"
+                    | "InfiniteLine"
+            ) {
                 cells.insert("A".to_string(), CellValue::val(row.a.to_string()));
                 cells.insert("B".to_string(), CellValue::val(row.b.to_string()));
             }
-            if matches!(row.row_type.as_str(), "Ellipse" | "EllipticalArcTo" | "SplineStart") {
+            if matches!(
+                row.row_type.as_str(),
+                "Ellipse" | "EllipticalArcTo" | "SplineStart"
+            ) {
                 cells.insert("C".to_string(), CellValue::val(row.c.to_string()));
                 cells.insert("D".to_string(), CellValue::val(row.d.to_string()));
             }
             if row.row_type == "NURBSTo" {
                 // Encode control points as semicolon-separated values
                 if !row.points.is_empty() {
-                    let pts_str: String = row.points.iter()
+                    let pts_str: String = row
+                        .points
+                        .iter()
                         .map(|p| format!("{},{},{},{}", p.0, p.1, p.2, p.3))
                         .collect::<Vec<_>>()
                         .join(";");
@@ -161,7 +256,9 @@ pub fn vsd_shape_to_model(
             }
             if row.row_type == "PolylineTo" {
                 if !row.points.is_empty() {
-                    let pts_str: String = row.points.iter()
+                    let pts_str: String = row
+                        .points
+                        .iter()
                         .map(|p| format!("{},{}", p.0, p.1))
                         .collect::<Vec<_>>()
                         .join(";");

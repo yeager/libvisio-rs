@@ -3,23 +3,24 @@
 //! Reads OLE2 structured storage and parses the VisioDocument stream
 //! containing pointer-based tree of binary records.
 
-use std::io::Read;
 use crate::error::{Result, VisioError};
 use crate::model::*;
 use crate::vsd::records::*;
 use crate::vsd::shapes::*;
+use std::io::Read;
 
 /// Parse a .vsd file from bytes.
 pub fn parse_vsd(data: &[u8]) -> Result<Document> {
     let cursor = std::io::Cursor::new(data);
-    let mut comp = cfb::CompoundFile::open(cursor)
-        .map_err(|e| VisioError::Cfb(e.to_string()))?;
+    let mut comp = cfb::CompoundFile::open(cursor).map_err(|e| VisioError::Cfb(e.to_string()))?;
 
     let mut stream_data = Vec::new();
     {
-        let mut stream = comp.open_stream("/VisioDocument")
+        let mut stream = comp
+            .open_stream("/VisioDocument")
             .map_err(|e| VisioError::Cfb(format!("Cannot open VisioDocument stream: {}", e)))?;
-        stream.read_to_end(&mut stream_data)
+        stream
+            .read_to_end(&mut stream_data)
             .map_err(|e| VisioError::Io(e))?;
     }
 
@@ -129,15 +130,27 @@ impl<'a> VsdParser<'a> {
                 geom.push(g);
             }
             let shape = vsd_shape_to_model(
-                &cs.xform, &cs.text, &geom,
-                cs.line_weight, &cs.line_color, cs.line_pattern,
-                &cs.fill_fg, &cs.fill_bg, cs.fill_pattern,
-                cs.shape_id, &cs.shape_type,
-                cs.text_xform.as_ref(), cs.xform_1d.as_ref(),
-                &cs.char_formats, &cs.para_formats,
-                &cs.shadow_color, cs.shadow_pattern,
-                cs.shadow_offset_x, cs.shadow_offset_y,
-                cs.foreign_data.as_ref(), &cs.layer_member,
+                &cs.xform,
+                &cs.text,
+                &geom,
+                cs.line_weight,
+                &cs.line_color,
+                cs.line_pattern,
+                &cs.fill_fg,
+                &cs.fill_bg,
+                cs.fill_pattern,
+                cs.shape_id,
+                &cs.shape_type,
+                cs.text_xform.as_ref(),
+                cs.xform_1d.as_ref(),
+                &cs.char_formats,
+                &cs.para_formats,
+                &cs.shadow_color,
+                cs.shadow_pattern,
+                cs.shadow_offset_x,
+                cs.shadow_offset_y,
+                cs.foreign_data.as_ref(),
+                &cs.layer_member,
             );
             if let Some(page) = &mut self.current_page {
                 page.shapes.push(shape);
@@ -153,15 +166,22 @@ impl<'a> VsdParser<'a> {
             while offset < self.data.len() && self.data[offset] == 0 {
                 offset += 1;
             }
-            if offset + 19 > self.data.len() { break; }
+            if offset + 19 > self.data.len() {
+                break;
+            }
 
             let hdr = match parse_chunk_header(self.data, offset) {
-                Some((h, new_off)) => { offset = new_off; h }
+                Some((h, new_off)) => {
+                    offset = new_off;
+                    h
+                }
                 None => break,
             };
 
             let end_pos = offset + hdr.data_length as usize + hdr.trailer as usize;
-            if end_pos > self.data.len() { break; }
+            if end_pos > self.data.len() {
+                break;
+            }
 
             let chunk_data = &self.data[offset..offset + hdr.data_length as usize];
             self.handle_chunk(&hdr, chunk_data);
@@ -230,55 +250,128 @@ impl<'a> VsdParser<'a> {
         }
         let page = self.current_page.as_mut().unwrap();
         let mut off = 1usize;
-        if let Some(w) = read_double(data, off) { page.width = w; }
+        if let Some(w) = read_double(data, off) {
+            page.width = w;
+        }
         off += 9;
-        if let Some(h) = read_double(data, off) { page.height = h; }
+        if let Some(h) = read_double(data, off) {
+            page.height = h;
+        }
     }
 
     fn read_xform(&mut self, data: &[u8]) {
-        let cs = match &mut self.current_shape { Some(s) => s, None => return };
+        let cs = match &mut self.current_shape {
+            Some(s) => s,
+            None => return,
+        };
         let mut off = 1usize;
-        if let Some(v) = read_double(data, off) { cs.xform.pin_x = v; } off += 9;
-        if let Some(v) = read_double(data, off) { cs.xform.pin_y = v; } off += 9;
-        if let Some(v) = read_double(data, off) { cs.xform.width = v; } off += 9;
-        if let Some(v) = read_double(data, off) { cs.xform.height = v; } off += 9;
-        if let Some(v) = read_double(data, off) { cs.xform.loc_pin_x = v; } off += 9;
-        if let Some(v) = read_double(data, off) { cs.xform.loc_pin_y = v; } off += 9;
-        if let Some(v) = read_double(data, off) { cs.xform.angle = v; } off += 8;
-        if off < data.len() { cs.xform.flip_x = data[off] != 0; off += 1; }
-        if off < data.len() { cs.xform.flip_y = data[off] != 0; }
+        if let Some(v) = read_double(data, off) {
+            cs.xform.pin_x = v;
+        }
+        off += 9;
+        if let Some(v) = read_double(data, off) {
+            cs.xform.pin_y = v;
+        }
+        off += 9;
+        if let Some(v) = read_double(data, off) {
+            cs.xform.width = v;
+        }
+        off += 9;
+        if let Some(v) = read_double(data, off) {
+            cs.xform.height = v;
+        }
+        off += 9;
+        if let Some(v) = read_double(data, off) {
+            cs.xform.loc_pin_x = v;
+        }
+        off += 9;
+        if let Some(v) = read_double(data, off) {
+            cs.xform.loc_pin_y = v;
+        }
+        off += 9;
+        if let Some(v) = read_double(data, off) {
+            cs.xform.angle = v;
+        }
+        off += 8;
+        if off < data.len() {
+            cs.xform.flip_x = data[off] != 0;
+            off += 1;
+        }
+        if off < data.len() {
+            cs.xform.flip_y = data[off] != 0;
+        }
     }
 
     fn read_text_xform(&mut self, data: &[u8]) {
-        let cs = match &mut self.current_shape { Some(s) => s, None => return };
+        let cs = match &mut self.current_shape {
+            Some(s) => s,
+            None => return,
+        };
         let mut txf = VsdTextXForm::default();
         let mut off = 1usize;
-        if let Some(v) = read_double(data, off) { txf.txt_pin_x = v; } off += 9;
-        if let Some(v) = read_double(data, off) { txf.txt_pin_y = v; } off += 9;
-        if let Some(v) = read_double(data, off) { txf.txt_width = v; } off += 9;
-        if let Some(v) = read_double(data, off) { txf.txt_height = v; }
+        if let Some(v) = read_double(data, off) {
+            txf.txt_pin_x = v;
+        }
+        off += 9;
+        if let Some(v) = read_double(data, off) {
+            txf.txt_pin_y = v;
+        }
+        off += 9;
+        if let Some(v) = read_double(data, off) {
+            txf.txt_width = v;
+        }
+        off += 9;
+        if let Some(v) = read_double(data, off) {
+            txf.txt_height = v;
+        }
         cs.text_xform = Some(txf);
     }
 
     fn read_xform_1d(&mut self, data: &[u8]) {
-        let cs = match &mut self.current_shape { Some(s) => s, None => return };
+        let cs = match &mut self.current_shape {
+            Some(s) => s,
+            None => return,
+        };
         let mut xf = VsdXForm1D::default();
         let mut off = 1usize;
-        if let Some(v) = read_double(data, off) { xf.begin_x = v; } off += 9;
-        if let Some(v) = read_double(data, off) { xf.begin_y = v; } off += 9;
-        if let Some(v) = read_double(data, off) { xf.end_x = v; } off += 9;
-        if let Some(v) = read_double(data, off) { xf.end_y = v; }
+        if let Some(v) = read_double(data, off) {
+            xf.begin_x = v;
+        }
+        off += 9;
+        if let Some(v) = read_double(data, off) {
+            xf.begin_y = v;
+        }
+        off += 9;
+        if let Some(v) = read_double(data, off) {
+            xf.end_x = v;
+        }
+        off += 9;
+        if let Some(v) = read_double(data, off) {
+            xf.end_y = v;
+        }
         cs.xform_1d = Some(xf);
     }
 
     fn read_text(&mut self, data: &[u8]) {
-        let cs = match &mut self.current_shape { Some(s) => s, None => return };
-        if data.len() < 8 { return; }
+        let cs = match &mut self.current_shape {
+            Some(s) => s,
+            None => return,
+        };
+        if data.len() < 8 {
+            return;
+        }
         let text_data = &data[8..];
         // Try UTF-16LE first
         if text_data.len() >= 2 {
-            let chars: Vec<u16> = text_data.chunks(2)
-                .map(|c| if c.len() == 2 { u16::from_le_bytes([c[0], c[1]]) } else { 0 })
+            let chars: Vec<u16> = text_data
+                .chunks(2)
+                .map(|c| {
+                    if c.len() == 2 {
+                        u16::from_le_bytes([c[0], c[1]])
+                    } else {
+                        0
+                    }
+                })
                 .collect();
             if let Ok(s) = String::from_utf16(&chars) {
                 let trimmed = s.trim_end_matches('\0').to_string();
@@ -289,11 +382,15 @@ impl<'a> VsdParser<'a> {
             }
         }
         // Fallback to UTF-8
-        cs.text = String::from_utf8_lossy(text_data).trim_end_matches('\0').to_string();
+        cs.text = String::from_utf8_lossy(text_data)
+            .trim_end_matches('\0')
+            .to_string();
     }
 
     fn read_geometry(&mut self, data: &[u8]) {
-        if self.current_shape.is_none() { return; }
+        if self.current_shape.is_none() {
+            return;
+        }
         // Push previous geometry section
         if let Some(g) = self.current_geom.take() {
             if let Some(cs) = &mut self.current_shape {
@@ -311,7 +408,9 @@ impl<'a> VsdParser<'a> {
     }
 
     fn ensure_geom(&mut self) -> bool {
-        if self.current_shape.is_none() { return false; }
+        if self.current_shape.is_none() {
+            return false;
+        }
         if self.current_geom.is_none() {
             self.current_geom = Some(VsdGeomSection::default());
         }
@@ -319,22 +418,47 @@ impl<'a> VsdParser<'a> {
     }
 
     fn read_geom_row(&mut self, row_type: &str, data: &[u8]) {
-        if !self.ensure_geom() { return; }
+        if !self.ensure_geom() {
+            return;
+        }
         let mut row = VsdGeomRow::default();
         row.row_type = row_type.to_string();
         let mut off = 1usize;
-        if let Some(v) = read_double(data, off) { row.x = v; } off += 9;
-        if let Some(v) = read_double(data, off) { row.y = v; } off += 9;
+        if let Some(v) = read_double(data, off) {
+            row.x = v;
+        }
+        off += 9;
+        if let Some(v) = read_double(data, off) {
+            row.y = v;
+        }
+        off += 9;
         match row_type {
             "ArcTo" | "SplineStart" | "SplineKnot" | "InfiniteLine" => {
-                if let Some(v) = read_double(data, off) { row.a = v; } off += 9;
-                if let Some(v) = read_double(data, off) { row.b = v; } off += 9;
+                if let Some(v) = read_double(data, off) {
+                    row.a = v;
+                }
+                off += 9;
+                if let Some(v) = read_double(data, off) {
+                    row.b = v;
+                }
+                off += 9;
             }
             "Ellipse" | "EllipticalArcTo" => {
-                if let Some(v) = read_double(data, off) { row.a = v; } off += 9;
-                if let Some(v) = read_double(data, off) { row.b = v; } off += 9;
-                if let Some(v) = read_double(data, off) { row.c = v; } off += 9;
-                if let Some(v) = read_double(data, off) { row.d = v; }
+                if let Some(v) = read_double(data, off) {
+                    row.a = v;
+                }
+                off += 9;
+                if let Some(v) = read_double(data, off) {
+                    row.b = v;
+                }
+                off += 9;
+                if let Some(v) = read_double(data, off) {
+                    row.c = v;
+                }
+                off += 9;
+                if let Some(v) = read_double(data, off) {
+                    row.d = v;
+                }
             }
             _ => {}
         }
@@ -344,25 +468,46 @@ impl<'a> VsdParser<'a> {
     }
 
     fn read_nurbs_to(&mut self, data: &[u8]) {
-        if !self.ensure_geom() { return; }
+        if !self.ensure_geom() {
+            return;
+        }
         let mut row = VsdGeomRow::default();
         row.row_type = "NURBSTo".to_string();
         let mut off = 1usize;
-        if let Some(v) = read_double(data, off) { row.x = v; } off += 9;
-        if let Some(v) = read_double(data, off) { row.y = v; } off += 9;
-        if let Some(v) = read_double(data, off) { row.knot_last = v; } off += 9;
+        if let Some(v) = read_double(data, off) {
+            row.x = v;
+        }
+        off += 9;
+        if let Some(v) = read_double(data, off) {
+            row.y = v;
+        }
+        off += 9;
+        if let Some(v) = read_double(data, off) {
+            row.knot_last = v;
+        }
+        off += 9;
         if off + 2 <= data.len() {
             row.degree = u16::from_le_bytes([data[off], data[off + 1]]);
             off += 2;
         }
-        if off < data.len() { row.x_type = data[off]; off += 1; }
-        if off < data.len() { row.y_type = data[off]; off += 1; }
+        if off < data.len() {
+            row.x_type = data[off];
+            off += 1;
+        }
+        if off < data.len() {
+            row.y_type = data[off];
+            off += 1;
+        }
         // Read control points
         while off + 32 <= data.len() {
-            let knot = read_double(data, off).unwrap_or(0.0); off += 8;
-            let weight = read_double(data, off).unwrap_or(0.0); off += 8;
-            let px = read_double(data, off).unwrap_or(0.0); off += 8;
-            let py = read_double(data, off).unwrap_or(0.0); off += 8;
+            let knot = read_double(data, off).unwrap_or(0.0);
+            off += 8;
+            let weight = read_double(data, off).unwrap_or(0.0);
+            off += 8;
+            let px = read_double(data, off).unwrap_or(0.0);
+            off += 8;
+            let py = read_double(data, off).unwrap_or(0.0);
+            off += 8;
             row.points.push((px, py, knot, weight));
         }
         if let Some(geom) = &mut self.current_geom {
@@ -371,17 +516,33 @@ impl<'a> VsdParser<'a> {
     }
 
     fn read_polyline_to(&mut self, data: &[u8]) {
-        if !self.ensure_geom() { return; }
+        if !self.ensure_geom() {
+            return;
+        }
         let mut row = VsdGeomRow::default();
         row.row_type = "PolylineTo".to_string();
         let mut off = 1usize;
-        if let Some(v) = read_double(data, off) { row.x = v; } off += 9;
-        if let Some(v) = read_double(data, off) { row.y = v; } off += 9;
-        if off < data.len() { row.x_type = data[off]; off += 1; }
-        if off < data.len() { row.y_type = data[off]; off += 1; }
+        if let Some(v) = read_double(data, off) {
+            row.x = v;
+        }
+        off += 9;
+        if let Some(v) = read_double(data, off) {
+            row.y = v;
+        }
+        off += 9;
+        if off < data.len() {
+            row.x_type = data[off];
+            off += 1;
+        }
+        if off < data.len() {
+            row.y_type = data[off];
+            off += 1;
+        }
         while off + 16 <= data.len() {
-            let px = read_double(data, off).unwrap_or(0.0); off += 8;
-            let py = read_double(data, off).unwrap_or(0.0); off += 8;
+            let px = read_double(data, off).unwrap_or(0.0);
+            off += 8;
+            let py = read_double(data, off).unwrap_or(0.0);
+            off += 8;
             row.points.push((px, py, 0.0, 0.0));
         }
         if let Some(geom) = &mut self.current_geom {
@@ -390,53 +551,101 @@ impl<'a> VsdParser<'a> {
     }
 
     fn read_line_fmt(&mut self, data: &[u8]) {
-        let cs = match &mut self.current_shape { Some(s) => s, None => return };
+        let cs = match &mut self.current_shape {
+            Some(s) => s,
+            None => return,
+        };
         let mut off = 1usize;
-        if let Some(v) = read_double(data, off) { cs.line_weight = v; } off += 9;
+        if let Some(v) = read_double(data, off) {
+            cs.line_weight = v;
+        }
+        off += 9;
         if off + 3 <= data.len() {
-            let r = data[off]; let g = data[off + 1]; let b = data[off + 2];
+            let r = data[off];
+            let g = data[off + 1];
+            let b = data[off + 2];
             cs.line_color = format!("#{:02X}{:02X}{:02X}", r, g, b);
             off += 4; // skip alpha
         }
-        if off < data.len() { cs.line_pattern = data[off] as i32; }
+        if off < data.len() {
+            cs.line_pattern = data[off] as i32;
+        }
     }
 
     fn read_fill(&mut self, data: &[u8]) {
-        let cs = match &mut self.current_shape { Some(s) => s, None => return };
+        let cs = match &mut self.current_shape {
+            Some(s) => s,
+            None => return,
+        };
         let mut off = 1usize;
         if off + 3 <= data.len() {
-            cs.fill_fg = format!("#{:02X}{:02X}{:02X}", data[off], data[off + 1], data[off + 2]);
+            cs.fill_fg = format!(
+                "#{:02X}{:02X}{:02X}",
+                data[off],
+                data[off + 1],
+                data[off + 2]
+            );
             off += 4;
         }
         off += 1;
         if off + 3 <= data.len() {
-            cs.fill_bg = format!("#{:02X}{:02X}{:02X}", data[off], data[off + 1], data[off + 2]);
+            cs.fill_bg = format!(
+                "#{:02X}{:02X}{:02X}",
+                data[off],
+                data[off + 1],
+                data[off + 2]
+            );
             off += 4;
         }
-        if off < data.len() { cs.fill_pattern = data[off] as i32; off += 1; }
+        if off < data.len() {
+            cs.fill_pattern = data[off] as i32;
+            off += 1;
+        }
         // Shadow data
         if off + 12 <= data.len() {
             off += 1;
             if off + 3 <= data.len() {
-                cs.shadow_color = format!("#{:02X}{:02X}{:02X}", data[off], data[off + 1], data[off + 2]);
+                cs.shadow_color = format!(
+                    "#{:02X}{:02X}{:02X}",
+                    data[off],
+                    data[off + 1],
+                    data[off + 2]
+                );
                 off += 4;
             }
-            if off < data.len() { cs.shadow_pattern = data[off] as i32; off += 1; }
+            if off < data.len() {
+                cs.shadow_pattern = data[off] as i32;
+                off += 1;
+            }
             off += 1;
-            if let Some(v) = read_double(data, off) { cs.shadow_offset_x = v; } off += 9;
-            if let Some(v) = read_double(data, off) { cs.shadow_offset_y = v; }
+            if let Some(v) = read_double(data, off) {
+                cs.shadow_offset_x = v;
+            }
+            off += 9;
+            if let Some(v) = read_double(data, off) {
+                cs.shadow_offset_y = v;
+            }
         }
     }
 
     fn read_char_ix(&mut self, data: &[u8]) {
-        let cs = match &mut self.current_shape { Some(s) => s, None => return };
-        if data.len() < 12 { return; }
+        let cs = match &mut self.current_shape {
+            Some(s) => s,
+            None => return,
+        };
+        if data.len() < 12 {
+            return;
+        }
         let mut fmt = VsdCharFormat::default();
         let mut off = 0usize;
-        fmt.char_count = read_u32(data, off); off += 4;
-        fmt.font_id = read_u16(data, off); off += 3;
+        fmt.char_count = read_u32(data, off);
+        off += 4;
+        fmt.font_id = read_u16(data, off);
+        off += 3;
         if off + 3 <= data.len() {
-            fmt.color_r = data[off]; fmt.color_g = data[off + 1]; fmt.color_b = data[off + 2];
+            fmt.color_r = data[off];
+            fmt.color_g = data[off + 1];
+            fmt.color_b = data[off + 2];
             off += 4;
         }
         if off < data.len() {
@@ -446,33 +655,70 @@ impl<'a> VsdParser<'a> {
             fmt.underline = mods & 4 != 0;
             off += 5;
         }
-        if let Some(v) = read_double(data, off) { fmt.font_size = v; }
+        if let Some(v) = read_double(data, off) {
+            fmt.font_size = v;
+        }
         cs.char_formats.push(fmt);
     }
 
     fn read_para_ix(&mut self, data: &[u8]) {
-        let cs = match &mut self.current_shape { Some(s) => s, None => return };
-        if data.len() < 8 { return; }
+        let cs = match &mut self.current_shape {
+            Some(s) => s,
+            None => return,
+        };
+        if data.len() < 8 {
+            return;
+        }
         let mut pf = VsdParaFormat::default();
         let mut off = 0usize;
-        pf.char_count = read_u32(data, off); off += 5;
-        if let Some(v) = read_double(data, off) { pf.indent_first = v; } off += 9;
-        if let Some(v) = read_double(data, off) { pf.indent_left = v; } off += 9;
-        if let Some(v) = read_double(data, off) { pf.indent_right = v; } off += 9;
-        if let Some(v) = read_double(data, off) { pf.spacing_line = v; } off += 9;
+        pf.char_count = read_u32(data, off);
+        off += 5;
+        if let Some(v) = read_double(data, off) {
+            pf.indent_first = v;
+        }
+        off += 9;
+        if let Some(v) = read_double(data, off) {
+            pf.indent_left = v;
+        }
+        off += 9;
+        if let Some(v) = read_double(data, off) {
+            pf.indent_right = v;
+        }
+        off += 9;
+        if let Some(v) = read_double(data, off) {
+            pf.spacing_line = v;
+        }
+        off += 9;
         // Skip spacing before/after
         off += 18;
         off += 1;
-        if off < data.len() { pf.horiz_align = data[off]; off += 2; }
-        if off < data.len() { pf.bullet = data[off]; }
+        if off < data.len() {
+            pf.horiz_align = data[off];
+            off += 2;
+        }
+        if off < data.len() {
+            pf.bullet = data[off];
+        }
         cs.para_formats.push(pf);
     }
 
     fn read_layer_membership(&mut self, data: &[u8]) {
-        let cs = match &mut self.current_shape { Some(s) => s, None => return };
-        if data.len() < 2 { return; }
-        let chars: Vec<u16> = data.chunks(2)
-            .map(|c| if c.len() == 2 { u16::from_le_bytes([c[0], c[1]]) } else { 0 })
+        let cs = match &mut self.current_shape {
+            Some(s) => s,
+            None => return,
+        };
+        if data.len() < 2 {
+            return;
+        }
+        let chars: Vec<u16> = data
+            .chunks(2)
+            .map(|c| {
+                if c.len() == 2 {
+                    u16::from_le_bytes([c[0], c[1]])
+                } else {
+                    0
+                }
+            })
             .collect();
         if let Ok(s) = String::from_utf16(&chars) {
             cs.layer_member = s.trim_end_matches('\0').trim().to_string();
@@ -480,7 +726,10 @@ impl<'a> VsdParser<'a> {
     }
 
     fn read_foreign_data_type(&mut self, data: &[u8]) {
-        let cs = match &mut self.current_shape { Some(s) => s, None => return };
+        let cs = match &mut self.current_shape {
+            Some(s) => s,
+            None => return,
+        };
         if cs.foreign_data.is_none() {
             cs.foreign_data = Some(VsdForeignData::default());
         }
@@ -506,7 +755,10 @@ impl<'a> VsdParser<'a> {
     }
 
     fn read_foreign_data(&mut self, data: &[u8]) {
-        let cs = match &mut self.current_shape { Some(s) => s, None => return };
+        let cs = match &mut self.current_shape {
+            Some(s) => s,
+            None => return,
+        };
         if cs.foreign_data.is_none() {
             cs.foreign_data = Some(VsdForeignData::default());
         }
@@ -517,35 +769,51 @@ impl<'a> VsdParser<'a> {
 // Helper functions for binary reading
 
 fn read_double(data: &[u8], offset: usize) -> Option<f64> {
-    if offset + 8 > data.len() { return None; }
-    Some(f64::from_le_bytes(data[offset..offset + 8].try_into().ok()?))
+    if offset + 8 > data.len() {
+        return None;
+    }
+    Some(f64::from_le_bytes(
+        data[offset..offset + 8].try_into().ok()?,
+    ))
 }
 
 fn read_u32(data: &[u8], offset: usize) -> u32 {
-    if offset + 4 > data.len() { return 0; }
+    if offset + 4 > data.len() {
+        return 0;
+    }
     u32::from_le_bytes(data[offset..offset + 4].try_into().unwrap_or([0; 4]))
 }
 
 fn read_u16(data: &[u8], offset: usize) -> u16 {
-    if offset + 2 > data.len() { return 0; }
+    if offset + 2 > data.len() {
+        return 0;
+    }
     u16::from_le_bytes(data[offset..offset + 2].try_into().unwrap_or([0; 2]))
 }
 
 fn parse_chunk_header(data: &[u8], offset: usize) -> Option<(ChunkHeader, usize)> {
-    if offset + 19 > data.len() { return None; }
+    if offset + 19 > data.len() {
+        return None;
+    }
     let mut off = offset;
     let mut hdr = ChunkHeader::default();
-    hdr.chunk_type = read_u32(data, off); off += 4;
-    hdr.record_id = read_u32(data, off); off += 4;
-    hdr.list_flag = read_u32(data, off); off += 4;
+    hdr.chunk_type = read_u32(data, off);
+    off += 4;
+    hdr.record_id = read_u32(data, off);
+    off += 4;
+    hdr.list_flag = read_u32(data, off);
+    off += 4;
 
     if hdr.list_flag != 0 || LIST_TRAILER_TYPES.contains(&hdr.chunk_type) {
         hdr.trailer += 8;
     }
 
-    hdr.data_length = read_u32(data, off); off += 4;
-    hdr.level = read_u16(data, off); off += 2;
-    hdr.unknown = if off < data.len() { data[off] } else { 0 }; off += 1;
+    hdr.data_length = read_u32(data, off);
+    off += 4;
+    hdr.level = read_u16(data, off);
+    off += 2;
+    hdr.unknown = if off < data.len() { data[off] } else { 0 };
+    off += 1;
 
     if hdr.list_flag != 0
         || (hdr.level == 2 && hdr.unknown == 0x55)

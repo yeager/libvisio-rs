@@ -26,9 +26,8 @@ pub fn parse_theme(zip: &mut zip::ZipArchive<std::io::Cursor<&[u8]>>) -> HashMap
         };
 
         let color_names = [
-            "dk1", "lt1", "dk2", "lt2",
-            "accent1", "accent2", "accent3", "accent4",
-            "accent5", "accent6", "hlink", "folHlink",
+            "dk1", "lt1", "dk2", "lt2", "accent1", "accent2", "accent3", "accent4", "accent5",
+            "accent6", "hlink", "folHlink",
         ];
 
         // Find clrScheme element
@@ -55,9 +54,18 @@ pub fn parse_theme(zip: &mut zip::ZipArchive<std::io::Cursor<&[u8]>>) -> HashMap
 
     // Build numeric index mapping
     let idx_map = [
-        (0, "dk1"), (1, "lt1"), (2, "dk2"), (3, "lt2"),
-        (4, "accent1"), (5, "accent2"), (6, "accent3"), (7, "accent4"),
-        (8, "accent5"), (9, "accent6"), (10, "hlink"), (11, "folHlink"),
+        (0, "dk1"),
+        (1, "lt1"),
+        (2, "dk2"),
+        (3, "lt2"),
+        (4, "accent1"),
+        (5, "accent2"),
+        (6, "accent3"),
+        (7, "accent4"),
+        (8, "accent5"),
+        (9, "accent6"),
+        (10, "hlink"),
+        (11, "folHlink"),
     ];
     for (idx, name) in &idx_map {
         if let Some(color) = theme_colors.get(*name) {
@@ -77,7 +85,8 @@ fn extract_color(elem: &roxmltree::Node, _dml_ns: &str) -> Option<String> {
                 return Some(apply_color_transforms(&child, &base));
             }
         } else if tag == "sysClr" {
-            let val = child.attribute("lastClr")
+            let val = child
+                .attribute("lastClr")
                 .or_else(|| child.attribute("val"))
                 .unwrap_or("");
             if val.len() == 6 {
@@ -102,7 +111,8 @@ fn apply_color_transforms(elem: &roxmltree::Node, base_color: &str) -> String {
 
     for child in elem.children() {
         let tag = child.tag_name().name();
-        let val: f64 = child.attribute("val")
+        let val: f64 = child
+            .attribute("val")
             .and_then(|v| v.parse::<f64>().ok())
             .unwrap_or(0.0);
         let pct = val / 100000.0;
@@ -133,5 +143,10 @@ fn apply_color_transforms(elem: &roxmltree::Node, base_color: &str) -> String {
         }
     }
 
-    format!("#{:02X}{:02X}{:02X}", r.clamp(0.0, 255.0) as u8, g.clamp(0.0, 255.0) as u8, b.clamp(0.0, 255.0) as u8)
+    format!(
+        "#{:02X}{:02X}{:02X}",
+        r.clamp(0.0, 255.0) as u8,
+        g.clamp(0.0, 255.0) as u8,
+        b.clamp(0.0, 255.0) as u8
+    )
 }

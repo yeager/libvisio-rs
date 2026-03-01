@@ -30,7 +30,9 @@ pub fn image_to_data_uri(data: &[u8], filename: &str) -> String {
 }
 
 /// Extract all files from visio/media/ in the ZIP.
-pub fn extract_media(zip: &mut zip::ZipArchive<std::io::Cursor<&[u8]>>) -> HashMap<String, Vec<u8>> {
+pub fn extract_media(
+    zip: &mut zip::ZipArchive<std::io::Cursor<&[u8]>>,
+) -> HashMap<String, Vec<u8>> {
     let mut media = HashMap::new();
     let names: Vec<String> = (0..zip.len())
         .filter_map(|i| zip.by_index(i).ok().map(|f| f.name().to_string()))

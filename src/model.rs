@@ -49,10 +49,16 @@ pub struct CellValue {
 
 impl CellValue {
     pub fn new(v: impl Into<String>, f: impl Into<String>) -> Self {
-        Self { v: v.into(), f: f.into() }
+        Self {
+            v: v.into(),
+            f: f.into(),
+        }
     }
     pub fn val(v: impl Into<String>) -> Self {
-        Self { v: v.into(), f: String::new() }
+        Self {
+            v: v.into(),
+            f: String::new(),
+        }
     }
     pub fn as_f64(&self) -> f64 {
         self.v.parse().unwrap_or(0.0)
@@ -190,8 +196,10 @@ impl Default for GradientDef {
             dir: 0.0,
             radial: false,
             stops: Vec::new(),
-            cx: 50.0, cy: 50.0,
-            fx: 50.0, fy: 50.0,
+            cx: 50.0,
+            cy: 50.0,
+            fx: 50.0,
+            fy: 50.0,
             r: 50.0,
         }
     }
@@ -282,7 +290,10 @@ impl Shape {
     }
 
     pub fn cell_f64_or(&self, name: &str, default: f64) -> f64 {
-        self.cells.get(name).map(|c| c.as_f64_or(default)).unwrap_or(default)
+        self.cells
+            .get(name)
+            .map(|c| c.as_f64_or(default))
+            .unwrap_or(default)
     }
 }
 

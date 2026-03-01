@@ -15,11 +15,13 @@ const RNS: &str = "http://schemas.openxmlformats.org/officeDocument/2006/relatio
 
 fn is_visio_tag(node: &roxmltree::Node, name: &str) -> bool {
     node.tag_name().name() == name
-        && (node.tag_name().namespace().is_none()
-            || node.tag_name().namespace() == Some(VNS))
+        && (node.tag_name().namespace().is_none() || node.tag_name().namespace() == Some(VNS))
 }
 
-fn find_child<'a>(node: &'a roxmltree::Node<'a, 'a>, name: &str) -> Option<roxmltree::Node<'a, 'a>> {
+fn find_child<'a>(
+    node: &'a roxmltree::Node<'a, 'a>,
+    name: &str,
+) -> Option<roxmltree::Node<'a, 'a>> {
     node.children().find(|c| is_visio_tag(c, name))
 }
 
@@ -35,8 +37,7 @@ fn cell_val(node: &roxmltree::Node, cell_name: &str) -> String {
 /// Parse a complete .vsdx file from bytes.
 pub fn parse_vsdx(data: &[u8]) -> Result<Document> {
     let cursor = Cursor::new(data);
-    let mut zip = zip::ZipArchive::new(cursor)
-        .map_err(|e| VisioError::Zip(e))?;
+    let mut zip = zip::ZipArchive::new(cursor).map_err(|e| VisioError::Zip(e))?;
 
     let mut doc = Document::default();
 
@@ -68,7 +69,15 @@ pub fn parse_vsdx(data: &[u8]) -> Result<Document> {
     let master_rels = parse_master_rels(&mut zip);
 
     // Pre-parse all pages
-    let mut page_cache: HashMap<usize, (Vec<Shape>, Vec<Connect>, HashMap<String, String>, HashMap<String, LayerDef>)> = HashMap::new();
+    let mut page_cache: HashMap<
+        usize,
+        (
+            Vec<Shape>,
+            Vec<Connect>,
+            HashMap<String, String>,
+            HashMap<String, LayerDef>,
+        ),
+    > = HashMap::new();
 
     for (i, page_file) in page_files.iter().enumerate() {
         let page_xml = match read_zip_file(&mut zip, page_file) {
@@ -109,7 +118,10 @@ pub fn parse_vsdx(data: &[u8]) -> Result<Document> {
             (8.5, 11.0)
         };
 
-        let name = page_names.get(i).cloned().unwrap_or_else(|| format!("Page {}", i + 1));
+        let name = page_names
+            .get(i)
+            .cloned()
+            .unwrap_or_else(|| format!("Page {}", i + 1));
 
         let mut all_rels = master_rels.clone();
         all_rels.extend(page_rels);
@@ -143,7 +155,10 @@ fn get_page_files(zip: &mut zip::ZipArchive<Cursor<&[u8]>>) -> Vec<String> {
         .filter_map(|i| {
             let f = zip.by_index(i).ok()?;
             let name = f.name().to_string();
-            if name.starts_with("visio/pages/page") && name.ends_with(".xml") && !name.ends_with("pages.xml") {
+            if name.starts_with("visio/pages/page")
+                && name.ends_with(".xml")
+                && !name.ends_with("pages.xml")
+            {
                 Some(name)
             } else {
                 None
@@ -199,10 +214,16 @@ fn parse_all_page_dimensions(zip: &mut zip::ZipArchive<Cursor<&[u8]>>) -> Vec<(f
                     if is_visio_tag(&cell, "Cell") {
                         match cell.attribute("N") {
                             Some("PageWidth") => {
-                                pw = cell.attribute("V").and_then(|v| v.parse().ok()).unwrap_or(8.5);
+                                pw = cell
+                                    .attribute("V")
+                                    .and_then(|v| v.parse().ok())
+                                    .unwrap_or(8.5);
                             }
                             Some("PageHeight") => {
-                                ph = cell.attribute("V").and_then(|v| v.parse().ok()).unwrap_or(11.0);
+                                ph = cell
+                                    .attribute("V")
+                                    .and_then(|v| v.parse().ok())
+                                    .unwrap_or(11.0);
                             }
                             _ => {}
                         }
@@ -233,7 +254,11 @@ fn parse_background_pages(zip: &mut zip::ZipArchive<Cursor<&[u8]>>) -> HashMap<u
     let mut page_id_to_idx: HashMap<String, usize> = HashMap::new();
     let mut pages_data: Vec<(usize, roxmltree::Node)> = Vec::new();
 
-    for (i, node) in doc.descendants().filter(|n| is_visio_tag(n, "Page")).enumerate() {
+    for (i, node) in doc
+        .descendants()
+        .filter(|n| is_visio_tag(n, "Page"))
+        .enumerate()
+    {
         if let Some(pid) = node.attribute("ID") {
             page_id_to_idx.insert(pid.to_string(), i);
         }
@@ -274,7 +299,9 @@ fn parse_stylesheets(zip: &mut zip::ZipArchive<Cursor<&[u8]>>) -> HashMap<String
     for node in doc.descendants() {
         if is_visio_tag(&node, "StyleSheet") {
             let sid = node.attribute("ID").unwrap_or("").to_string();
-            if sid.is_empty() { continue; }
+            if sid.is_empty() {
+                continue;
+            }
             let mut ss = StyleSheet::default();
             ss.line_style = node.attribute("LineStyle").unwrap_or("").to_string();
             ss.fill_style = node.attribute("FillStyle").unwrap_or("").to_string();
@@ -328,7 +355,9 @@ fn parse_master_rels(zip: &mut zip::ZipArchive<Cursor<&[u8]>>) -> HashMap<String
 }
 
 /// Parse master shapes from all master XML files.
-pub fn parse_master_shapes(zip: &mut zip::ZipArchive<Cursor<&[u8]>>) -> HashMap<String, HashMap<String, Shape>> {
+pub fn parse_master_shapes(
+    zip: &mut zip::ZipArchive<Cursor<&[u8]>>,
+) -> HashMap<String, HashMap<String, Shape>> {
     let mut masters: HashMap<String, HashMap<String, Shape>> = HashMap::new();
 
     // Parse masters.xml to map Master ID -> rel ID -> file
@@ -339,7 +368,8 @@ pub fn parse_master_shapes(zip: &mut zip::ZipArchive<Cursor<&[u8]>>) -> HashMap<
             if let Ok(doc) = roxmltree::Document::parse(xml_str) {
                 // Parse rels
                 let mut rid_to_file: HashMap<String, String> = HashMap::new();
-                if let Some(rels_data) = read_zip_file(zip, "visio/masters/_rels/masters.xml.rels") {
+                if let Some(rels_data) = read_zip_file(zip, "visio/masters/_rels/masters.xml.rels")
+                {
                     if let Ok(rels_str) = std::str::from_utf8(&rels_data) {
                         if let Ok(rels_doc) = roxmltree::Document::parse(rels_str) {
                             for node in rels_doc.descendants() {
@@ -363,14 +393,17 @@ pub fn parse_master_shapes(zip: &mut zip::ZipArchive<Cursor<&[u8]>>) -> HashMap<
                 for node in doc.descendants() {
                     if is_visio_tag(&node, "Master") {
                         let mid = node.attribute("ID").unwrap_or("").to_string();
-                        if mid.is_empty() { continue; }
+                        if mid.is_empty() {
+                            continue;
+                        }
 
                         // Find Rel element
                         let mut mapped = false;
                         for child in node.children() {
                             if child.tag_name().name() == "Rel" {
                                 // Try various attribute patterns for r:id
-                                let rid = child.attribute((RNS, "id"))
+                                let rid = child
+                                    .attribute((RNS, "id"))
                                     .or_else(|| child.attribute("id"))
                                     .unwrap_or("");
                                 if let Some(fnum) = rid_to_file.get(rid) {
@@ -394,7 +427,10 @@ pub fn parse_master_shapes(zip: &mut zip::ZipArchive<Cursor<&[u8]>>) -> HashMap<
         .filter_map(|i| {
             let f = zip.by_index(i).ok()?;
             let n = f.name().to_string();
-            if n.starts_with("visio/masters/master") && n.ends_with(".xml") && !n.contains("masters.xml") {
+            if n.starts_with("visio/masters/master")
+                && n.ends_with(".xml")
+                && !n.contains("masters.xml")
+            {
                 Some(n)
             } else {
                 None
@@ -418,10 +454,12 @@ pub fn parse_master_shapes(zip: &mut zip::ZipArchive<Cursor<&[u8]>>) -> HashMap<
                     for node in doc.descendants() {
                         if is_visio_tag(&node, "Shape") {
                             // Only top-level shapes (parent is not another Shape)
-                            let _parent_is_shape = node.parent()
+                            let _parent_is_shape = node
+                                .parent()
                                 .map(|p| is_visio_tag(&p, "Shape") || is_visio_tag(&p, "Shapes"))
                                 .unwrap_or(false);
-                            let parent_is_shapes_in_shape = node.parent()
+                            let parent_is_shapes_in_shape = node
+                                .parent()
                                 .and_then(|p| p.parent())
                                 .map(|gp| is_visio_tag(&gp, "Shape"))
                                 .unwrap_or(false);
@@ -504,7 +542,11 @@ pub fn parse_layers(doc: &roxmltree::Document) -> HashMap<String, LayerDef> {
                             let ix = row.attribute("IX").unwrap_or("").to_string();
                             let visible = cell_val(&row, "Visible") != "0";
                             let name = cell_val(&row, "Name");
-                            let name = if name.is_empty() { format!("Layer {}", ix) } else { name };
+                            let name = if name.is_empty() {
+                                format!("Layer {}", ix)
+                            } else {
+                                name
+                            };
                             layers.insert(ix, LayerDef { name, visible });
                         }
                     }
@@ -658,7 +700,10 @@ pub fn parse_single_shape(node: &roxmltree::Node) -> Shape {
                             let color = cell_val(&row, "GradientStopColor");
                             let pos: f64 = pos_str.parse().unwrap_or(0.0) * 100.0;
                             if !color.is_empty() {
-                                stops.push(GradientStop { position: pos, color });
+                                stops.push(GradientStop {
+                                    position: pos,
+                                    color,
+                                });
                             }
                         }
                     }
@@ -713,13 +758,17 @@ pub fn parse_single_shape(node: &roxmltree::Node) -> Shape {
     if let Some(fd_node) = find_child(node, "ForeignData") {
         let mut fdi = ForeignDataInfo::default();
         fdi.foreign_type = fd_node.attribute("ForeignType").unwrap_or("").to_string();
-        fdi.compression = fd_node.attribute("CompressionType").unwrap_or("").to_string();
+        fdi.compression = fd_node
+            .attribute("CompressionType")
+            .unwrap_or("")
+            .to_string();
 
         // Look for Rel element
         let mut found_rel = false;
         for child in fd_node.children() {
             if child.tag_name().name() == "Rel" {
-                let rid = child.attribute((RNS, "id"))
+                let rid = child
+                    .attribute((RNS, "id"))
                     .or_else(|| child.attribute("id"))
                     .unwrap_or("");
                 if !rid.is_empty() {
@@ -772,7 +821,11 @@ fn parse_geometry_section(section: &roxmltree::Node) -> GeomSection {
                     cells.insert(n.to_string(), CellValue::new(v, f));
                 }
             }
-            geo.rows.push(GeomRow { row_type, ix: row_ix, cells });
+            geo.rows.push(GeomRow {
+                row_type,
+                ix: row_ix,
+                cells,
+            });
         }
     }
 

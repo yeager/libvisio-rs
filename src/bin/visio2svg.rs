@@ -64,7 +64,10 @@ fn main() {
         match libvisio_rs::get_page_info(input) {
             Ok(pages) => {
                 for p in pages {
-                    println!("Page {}: \"{}\" ({:.2}\" × {:.2}\")", p.index, p.name, p.width, p.height);
+                    println!(
+                        "Page {}: \"{}\" ({:.2}\" × {:.2}\")",
+                        p.index, p.name, p.width, p.height
+                    );
                 }
             }
             Err(e) => {

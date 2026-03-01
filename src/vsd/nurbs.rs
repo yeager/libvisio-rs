@@ -27,10 +27,17 @@ pub fn evaluate_nurbs_curve(
 
     let p = degree;
     let t_min = if p < knots.len() { knots[p] } else { 0.0 };
-    let t_max = if n < knots.len() { knots[n] } else { *knots.last().unwrap_or(&1.0) };
+    let t_max = if n < knots.len() {
+        knots[n]
+    } else {
+        *knots.last().unwrap_or(&1.0)
+    };
 
     if (t_max - t_min).abs() < 1e-10 {
-        return vec![(ctrl_pts[0].0, ctrl_pts[0].1), (ctrl_pts[n - 1].0, ctrl_pts[n - 1].1)];
+        return vec![
+            (ctrl_pts[0].0, ctrl_pts[0].1),
+            (ctrl_pts[n - 1].0, ctrl_pts[n - 1].1),
+        ];
     }
 
     let mut result = Vec::with_capacity(num_samples + 1);
