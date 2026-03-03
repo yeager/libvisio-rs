@@ -2,7 +2,7 @@
 //!
 //! This module contains the complete SVG rendering pipeline, ported from
 //! the Python libvisio-ng. It handles geometry paths, text, gradients,
-//! shadows, arrows, fills, and all the visual features.
+//! shadows, arrows, fills, hatching patterns, connectors, and all the visual features.
 
 use crate::model::*;
 use std::collections::{HashMap, HashSet};
@@ -39,20 +39,32 @@ static VISIO_COLORS: &[(i32, &str)] = &[
     (24, "#E6E6E6"),
 ];
 
-/// Line pattern dash arrays.
+/// Complete Visio line pattern dash arrays (all 23 patterns).
 static LINE_PATTERNS: &[(i32, &str)] = &[
-    (0, "none"),
-    (1, ""),
-    (2, "4,3"),
-    (3, "1,3"),
-    (4, "4,3,1,3"),
-    (5, "4,3,1,3,1,3"),
-    (6, "8,3"),
-    (7, "1,1"),
-    (8, "8,3,1,3"),
-    (9, "8,3,1,3,1,3"),
-    (10, "12,6"),
-    (16, "6,3,6,3"),
+    (0, "none"),           // No line
+    (1, ""),               // Solid
+    (2, "4,3"),            // Dash
+    (3, "1,3"),            // Dot
+    (4, "4,3,1,3"),        // Dash-dot
+    (5, "4,3,1,3,1,3"),   // Dash-dot-dot
+    (6, "8,3"),            // Long dash
+    (7, "1,1"),            // Dense dot
+    (8, "8,3,1,3"),        // Long dash-dot
+    (9, "8,3,1,3,1,3"),   // Long dash-dot-dot
+    (10, "12,6"),          // Extra-long dash
+    (11, "12,3,1,3"),     // Extra-long dash-dot
+    (12, "12,3,1,3,1,3"), // Extra-long dash-dot-dot
+    (13, "2,2"),           // Short dash
+    (14, "2,2,6,2"),       // Short dash-long dash
+    (15, "2,2,6,2,6,2"),   // Short dash-long dash-long dash
+    (16, "6,3,6,3"),       // Dash-dash
+    (17, "1,1,6,1"),       // Dot-dash (tight)
+    (18, "10,2"),          // Heavy dash
+    (19, "1,3,6,3"),       // Dot-long dash
+    (20, "1,3,6,3,6,3"),   // Dot-long dash-long dash
+    (21, "1,3,1,3,6,3"),   // Dot-dot-long dash
+    (22, "6,1"),           // Tight dash
+    (23, "1,1,1,1,6,1"),   // Tight dot-dot-dash
 ];
 
 /// Arrow size scale factors.
@@ -66,12 +78,44 @@ static ARROW_SIZES: &[(i32, f64)] = &[
     (6, 2.5),
 ];
 
+/// Gradient angle mapping for fill patterns 25-40.
+static PATTERN_ANGLES: &[(i32, f64)] = &[
+    (25, 270.0), (26, 0.0), (27, 90.0), (28, 180.0),
+    (33, 315.0), (34, 45.0), (35, 135.0), (36, 225.0),
+];
+
+/// QuickStyle fill color to theme color name mapping.
+static QUICKSTYLE_FILL_MAP: &[(i32, &str)] = &[
+    (0, "dk1"), (1, "lt1"), (2, "accent1"), (3, "accent2"),
+    (4, "accent3"), (5, "accent4"), (6, "accent5"), (7, "accent6"),
+    (100, "dk1"), (101, "lt1"), (102, "accent1"), (103, "accent2"),
+    (104, "accent3"), (105, "accent4"), (106, "accent5"), (107, "accent6"),
+];
+
 fn arrow_size(idx: i32) -> f64 {
     ARROW_SIZES
         .iter()
         .find(|&&(i, _)| i == idx)
         .map(|&(_, s)| s)
         .unwrap_or(1.0)
+}
+
+fn pattern_angle(idx: i32) -> f64 {
+    PATTERN_ANGLES
+        .iter()
+        .find(|&&(i, _)| i == idx)
+        .map(|&(_, a)| a)
+        .unwrap_or(0.0)
+}
+
+/// Resolve a QuickStyle fill color index to a theme color.
+pub fn resolve_quickstyle_color(idx: i32, theme_colors: &HashMap<String, String>) -> String {
+    let name = QUICKSTYLE_FILL_MAP
+        .iter()
+        .find(|&&(i, _)| i == idx)
+        .map(|&(_, n)| n)
+        .unwrap_or("accent1");
+    theme_colors.get(name).cloned().unwrap_or_default()
 }
 
 /// Resolve a Visio color value to SVG hex.
@@ -81,9 +125,12 @@ pub fn resolve_color(val: &str, theme_colors: &HashMap<String, String>) -> Strin
         return String::new();
     }
 
-    // THEMEVAL
-    if val.contains("THEMEVAL") || val.contains("THEMEGUARD") {
-        if let Some(key) = extract_themeval_key(val) {
+    // THEMEVAL / THEMEGUARD
+    let upper = val.to_uppercase();
+    if upper.contains("THEMEVAL") || upper.contains("THEMEGUARD") {
+        // Unwrap nested THEMEGUARD(THEMEVAL(...))
+        let inner = unwrap_themeguard(val);
+        if let Some(key) = extract_themeval_key(&inner) {
             if let Some(color) = theme_colors.get(&key) {
                 return color.clone();
             }
@@ -91,7 +138,7 @@ pub fn resolve_color(val: &str, theme_colors: &HashMap<String, String>) -> Strin
         return String::new();
     }
 
-    if val == "Inh" || val.starts_with('=') || val.contains("THEME") {
+    if val == "Inh" || val.starts_with('=') || upper.contains("THEME") {
         return String::new();
     }
 
@@ -121,20 +168,28 @@ pub fn resolve_color(val: &str, theme_colors: &HashMap<String, String>) -> Strin
     String::new()
 }
 
+/// Unwrap THEMEGUARD(expr) to get inner expression.
+fn unwrap_themeguard(val: &str) -> String {
+    let mut s = val.to_string();
+    while s.to_uppercase().starts_with("THEMEGUARD(") && s.ends_with(')') {
+        s = s[11..s.len() - 1].to_string();
+    }
+    s
+}
+
 fn extract_themeval_key(val: &str) -> Option<String> {
-    // THEMEVAL("accent1",0) or THEMEVAL(0)
     let upper = val.to_uppercase();
     if let Some(start) = upper.find("THEMEVAL") {
         let rest = &val[start + 8..];
         if let Some(paren_start) = rest.find('(') {
             let inner = &rest[paren_start + 1..];
-            // Try quoted key
+            // Try quoted key: THEMEVAL("accent1",0)
             if let Some(q_start) = inner.find('"') {
                 if let Some(q_end) = inner[q_start + 1..].find('"') {
                     return Some(inner[q_start + 1..q_start + 1 + q_end].to_lowercase());
                 }
             }
-            // Try numeric
+            // Try numeric: THEMEVAL(0)
             let num_str: String = inner.chars().take_while(|c| c.is_ascii_digit()).collect();
             if !num_str.is_empty() {
                 return Some(num_str);
@@ -223,8 +278,7 @@ fn hue2rgb(p: f64, q: f64, mut t: f64) -> f64 {
     p
 }
 
-#[allow(dead_code)]
-fn lighten_color(hex: &str, factor: f64) -> String {
+pub fn lighten_color(hex: &str, factor: f64) -> String {
     let hex = hex.trim().trim_start_matches('#');
     if hex.len() != 6 {
         return "#E8E8E8".to_string();
@@ -238,14 +292,7 @@ fn lighten_color(hex: &str, factor: f64) -> String {
     format!("#{:02X}{:02X}{:02X}", r, g, b)
 }
 
-#[allow(dead_code)]
-fn is_black(color: &str) -> bool {
-    let c = color.trim().to_uppercase();
-    c == "#000000" || c == "#000" || c == "0"
-}
-
-#[allow(dead_code)]
-fn is_dark_color(color: &str) -> bool {
+pub fn is_dark_color(color: &str) -> bool {
     if color.is_empty() || color == "none" {
         return false;
     }
@@ -282,6 +329,7 @@ fn get_dash_array(pattern: i32, weight: f64) -> String {
         .unwrap_or("");
     if p.is_empty() || p == "none" {
         if (2..=23).contains(&pattern) {
+            // Fallback patterns for unmatched indices
             let p = match pattern % 3 {
                 0 => "1,2",
                 1 => "6,3",
@@ -295,6 +343,9 @@ fn get_dash_array(pattern: i32, weight: f64) -> String {
                 .join(",");
         }
         return String::new();
+    }
+    if p == "none" {
+        return "none".to_string();
     }
     let scale = weight.max(0.5);
     p.split(',')
@@ -351,6 +402,8 @@ pub fn merge_shape_with_master(
         if let Some(cv) = master_sd.cells.get("Height") {
             shape.master_h = cv.as_f64();
         }
+    } else if !shape.geometry.is_empty() {
+        shape.has_own_geometry = true;
     }
 
     // Merge text
@@ -572,7 +625,6 @@ fn geometry_to_path(geo: &GeomSection, w: f64, h: f64, master_w: f64, master_h: 
             "NURBSTo" => {
                 let x = row.cell_f64("X") * sx;
                 let y = row.cell_f64("Y") * sy;
-                // Simple fallback: line to endpoint
                 d_parts.push(format!(
                     "L {:.2} {:.2}",
                     x * INCH_TO_PX,
@@ -751,6 +803,71 @@ fn append_elliptical_arc(
     ));
 }
 
+/// Build connector polyline from geometry rows, transforming to page coordinates.
+fn build_connector_polyline(
+    shape: &Shape,
+    page_h: f64,
+    bx: f64,
+    by: f64,
+) -> Vec<(f64, f64)> {
+    let pin_x = shape.cell_f64("PinX");
+    let pin_y = shape.cell_f64("PinY");
+    let loc_pin_x = shape.cell_f64("LocPinX");
+    let loc_pin_y = shape.cell_f64("LocPinY");
+    let angle = shape.cell_f64("Angle");
+    let cos_a = if angle.abs() > 1e-6 { angle.cos() } else { 1.0 };
+    let sin_a = if angle.abs() > 1e-6 { angle.sin() } else { 0.0 };
+
+    let mut points = Vec::new();
+    let mut has_move_to = false;
+
+    for geo in &shape.geometry {
+        if geo.no_show {
+            continue;
+        }
+        for row in &geo.rows {
+            let rt = row.row_type.as_str();
+            match rt {
+                "MoveTo" | "LineTo" | "ArcTo" | "EllipticalArcTo" | "NURBSTo"
+                | "SplineStart" | "SplineKnot" => {
+                    let x_cell = row.cells.get("X");
+                    let y_cell = row.cells.get("Y");
+                    // Both X and Y must be present
+                    let x_val = x_cell.map(|c| &c.v).filter(|v| !v.is_empty());
+                    let y_val = y_cell.map(|c| &c.v).filter(|v| !v.is_empty());
+                    if x_val.is_none() && x_cell.map(|c| c.v.as_str()) != Some("0") {
+                        continue;
+                    }
+                    if y_val.is_none() && y_cell.map(|c| c.v.as_str()) != Some("0") {
+                        continue;
+                    }
+                    if rt == "MoveTo" {
+                        has_move_to = true;
+                    }
+                    let lx = row.cell_f64("X");
+                    let ly = row.cell_f64("Y");
+                    // Local to page coordinates
+                    let dx = lx - loc_pin_x;
+                    let dy = ly - loc_pin_y;
+                    let px = pin_x + dx * cos_a - dy * sin_a;
+                    let py = pin_y + dx * sin_a + dy * cos_a;
+                    let sx_px = px * INCH_TO_PX;
+                    let sy_px = (page_h - py) * INCH_TO_PX;
+                    points.push((sx_px, sy_px));
+                }
+                _ => {}
+            }
+        }
+    }
+
+    // If no MoveTo, prepend the begin point
+    if !points.is_empty() && !has_move_to {
+        points.insert(0, (bx, by));
+    }
+
+    points
+}
+
 /// Render all shapes on a page to SVG.
 pub fn shapes_to_svg(
     shapes: &[Shape],
@@ -863,7 +980,7 @@ pub fn shapes_to_svg(
         }
     }
 
-    // Sort: containers first
+    // Sort: containers first (they should be behind other shapes)
     let mut sorted_shapes: Vec<&Shape> = shapes.iter().collect();
     sorted_shapes.sort_by_key(|s| {
         let user = &s.user;
@@ -921,7 +1038,9 @@ pub fn shapes_to_svg(
         defs.push("<defs>".to_string());
 
         // Arrow markers
-        for marker_id in &used_markers {
+        let mut sorted_markers: Vec<&String> = used_markers.iter().collect();
+        sorted_markers.sort();
+        for marker_id in sorted_markers {
             let parts: Vec<&str> = marker_id.split('_').collect();
             let direction = parts.get(1).unwrap_or(&"end");
             let size_idx: i32 = parts.get(2).and_then(|s| s.parse().ok()).unwrap_or(3);
@@ -945,28 +1064,30 @@ pub fn shapes_to_svg(
             }
         }
 
-        // Fill patterns
+        // Fill patterns (hatching) — complete implementation for all Visio patterns 2-24
         for pat in &fill_patterns {
-            let spacing = 6;
-            let sw = 1.0;
             let pt = pat.pattern_type;
+            let sw = 1.0;
+
             if (2..=5).contains(&pt) {
+                // Simple line patterns: horizontal, vertical, diagonal
+                let spacing = 6;
                 let line = match pt {
                     2 => format!(
-                        r#"<line x1="0" y1="3" x2="6" y2="3" stroke="{}" stroke-width="{}"/>"#,
-                        pat.fg, sw
+                        r#"<line x1="0" y1="{}" x2="{}" y2="{}" stroke="{}" stroke-width="{}"/>"#,
+                        spacing / 2, spacing, spacing / 2, pat.fg, sw
                     ),
                     3 => format!(
-                        r#"<line x1="3" y1="0" x2="3" y2="6" stroke="{}" stroke-width="{}"/>"#,
-                        pat.fg, sw
+                        r#"<line x1="{}" y1="0" x2="{}" y2="{}" stroke="{}" stroke-width="{}"/>"#,
+                        spacing / 2, spacing / 2, spacing, pat.fg, sw
                     ),
                     4 => format!(
-                        r#"<line x1="0" y1="6" x2="6" y2="0" stroke="{}" stroke-width="{}"/>"#,
-                        pat.fg, sw
+                        r#"<line x1="0" y1="{}" x2="{}" y2="0" stroke="{}" stroke-width="{}"/>"#,
+                        spacing, spacing, pat.fg, sw
                     ),
                     _ => format!(
-                        r#"<line x1="0" y1="0" x2="6" y2="6" stroke="{}" stroke-width="{}"/>"#,
-                        pat.fg, sw
+                        r#"<line x1="0" y1="0" x2="{}" y2="{}" stroke="{}" stroke-width="{}"/>"#,
+                        spacing, spacing, pat.fg, sw
                     ),
                 };
                 defs.push(format!(
@@ -974,11 +1095,34 @@ pub fn shapes_to_svg(
                     pat.id, spacing, spacing, spacing, spacing, pat.bg, line
                 ));
             } else if (6..=9).contains(&pt) {
+                // Crosshatch patterns
+                let spacing = 6;
                 defs.push(format!(
-                    r#"<pattern id="{}" patternUnits="userSpaceOnUse" width="{}" height="{}"><rect width="{}" height="{}" fill="{}"/><line x1="0" y1="3" x2="6" y2="3" stroke="{}" stroke-width="{}"/><line x1="3" y1="0" x2="3" y2="6" stroke="{}" stroke-width="{}"/></pattern>"#,
-                    pat.id, spacing, spacing, spacing, spacing, pat.bg, pat.fg, sw, pat.fg, sw
+                    r#"<pattern id="{}" patternUnits="userSpaceOnUse" width="{}" height="{}"><rect width="{}" height="{}" fill="{}"/><line x1="0" y1="{}" x2="{}" y2="{}" stroke="{}" stroke-width="{}"/><line x1="{}" y1="0" x2="{}" y2="{}" stroke="{}" stroke-width="{}"/></pattern>"#,
+                    pat.id, spacing, spacing, spacing, spacing, pat.bg,
+                    spacing / 2, spacing, spacing / 2, pat.fg, sw,
+                    spacing / 2, spacing / 2, spacing, pat.fg, sw
+                ));
+            } else if (10..=12).contains(&pt) {
+                // Diagonal crosshatch
+                let spacing = 6;
+                defs.push(format!(
+                    r#"<pattern id="{}" patternUnits="userSpaceOnUse" width="{}" height="{}"><rect width="{}" height="{}" fill="{}"/><line x1="0" y1="0" x2="{}" y2="{}" stroke="{}" stroke-width="{}"/><line x1="0" y1="{}" x2="{}" y2="0" stroke="{}" stroke-width="{}"/></pattern>"#,
+                    pat.id, spacing, spacing, spacing, spacing, pat.bg,
+                    spacing, spacing, pat.fg, sw,
+                    spacing, spacing, pat.fg, sw
+                ));
+            } else if (13..=24).contains(&pt) {
+                // Dense patterns — dots with varying spacing
+                let dot_spacing = (3i32).max(6 - (pt - 12));
+                defs.push(format!(
+                    r#"<pattern id="{}" patternUnits="userSpaceOnUse" width="{}" height="{}"><rect width="{}" height="{}" fill="{}"/><circle cx="{}" cy="{}" r="0.8" fill="{}"/></pattern>"#,
+                    pat.id, dot_spacing, dot_spacing, dot_spacing, dot_spacing, pat.bg,
+                    dot_spacing as f64 / 2.0, dot_spacing as f64 / 2.0, pat.fg
                 ));
             } else {
+                // Unknown pattern — fallback to dots
+                let spacing = 6;
                 defs.push(format!(
                     r#"<pattern id="{}" patternUnits="userSpaceOnUse" width="{}" height="{}"><rect width="{}" height="{}" fill="{}"/><circle cx="3" cy="3" r="0.8" fill="{}"/></pattern>"#,
                     pat.id, spacing, spacing, spacing, spacing, pat.bg, pat.fg
@@ -1051,6 +1195,7 @@ pub fn shapes_to_svg(
 }
 
 /// Render a single shape as SVG elements.
+#[allow(clippy::too_many_arguments)]
 fn render_shape_svg(
     shape: &Shape,
     page_h: f64,
@@ -1114,10 +1259,12 @@ fn render_shape_svg(
     let fill_pat_int: i32 = shape.cell_val("FillPattern").parse().unwrap_or(1);
     let line_pattern: i32 = shape.cell_val("LinePattern").parse().unwrap_or(1);
 
-    // Determine fill color
+    // Determine fill color — handles solid fills, hatching patterns (2-24),
+    // and gradient fills (25-40)
     let fill = if fill_pat_int == 0 {
         "none".to_string()
     } else if fill_pat_int == 1 {
+        // Solid fill
         if !fill_foregnd.is_empty() {
             fill_foregnd.clone()
         } else if !fill_bkgnd.is_empty() {
@@ -1125,6 +1272,72 @@ fn render_shape_svg(
         } else {
             "none".to_string()
         }
+    } else if (25..=40).contains(&fill_pat_int) {
+        // Gradient fills
+        let fg = if !fill_foregnd.is_empty() {
+            fill_foregnd.clone()
+        } else {
+            "#FFFFFF".to_string()
+        };
+        let bg = if !fill_bkgnd.is_empty() {
+            fill_bkgnd.clone()
+        } else {
+            "#000000".to_string()
+        };
+        let grad_angle = pattern_angle(fill_pat_int);
+        let grad_id = format!("grad_{}_{}", shape.id, fill_pat_int);
+        let is_radial = matches!(fill_pat_int, 29 | 30 | 31 | 32 | 37 | 38 | 39);
+
+        // Use gradient stops from shape if available
+        let stops = if !shape.gradient_stops.is_empty() {
+            shape.gradient_stops.iter().flatten().map(|gs| {
+                GradientStop {
+                    position: gs.position,
+                    color: gs.color.clone(),
+                }
+            }).collect()
+        } else {
+            vec![
+                GradientStop { position: 0.0, color: fg.clone() },
+                GradientStop { position: 100.0, color: bg.clone() },
+            ]
+        };
+
+        gradients.push(GradientDef {
+            id: grad_id.clone(),
+            start: fg,
+            end: bg,
+            mid: None,
+            dir: grad_angle,
+            radial: is_radial,
+            stops,
+            cx: 50.0,
+            cy: 50.0,
+            fx: 50.0,
+            fy: 50.0,
+            r: 50.0,
+        });
+        format!("url(#{})", grad_id)
+    } else if (2..=24).contains(&fill_pat_int) {
+        // Hatching patterns
+        let fg = if !fill_foregnd.is_empty() {
+            fill_foregnd.clone()
+        } else {
+            "#000000".to_string()
+        };
+        let bg = if !fill_bkgnd.is_empty() {
+            fill_bkgnd.clone()
+        } else {
+            "#FFFFFF".to_string()
+        };
+        let pat_id = format!("fpat_{}_{}", shape.id, fill_pat_int);
+        fill_patterns.push(FillPatternDef {
+            id: pat_id.clone(),
+            fg,
+            bg,
+            pattern_type: fill_pat_int,
+        });
+        format!("url(#{})", pat_id)
     } else if !fill_foregnd.is_empty() {
         fill_foregnd.clone()
     } else if !fill_bkgnd.is_empty() {
@@ -1150,11 +1363,31 @@ fn render_shape_svg(
         1.0
     };
 
+    // Shadow
+    let shadow_val = shape.cell_val("ShdwPattern");
+    let has_shadow = !shadow_val.is_empty() && shadow_val != "0";
+    let shadow_attr = if has_shadow {
+        let shadow_id = format!("shadow_{}", shape.id);
+        let shadow_offset_x = shape.cell_f64_or("ShdwOffsetX", 0.02) * INCH_TO_PX;
+        let shadow_offset_y = shape.cell_f64_or("ShdwOffsetY", -0.02) * INCH_TO_PX;
+        shadow_defs.push(format!(
+            "<filter id=\"{}\"><feDropShadow dx=\"{:.1}\" dy=\"{:.1}\" stdDeviation=\"2\" flood-color=\"#00000044\"/></filter>",
+            shadow_id, shadow_offset_x, -shadow_offset_y
+        ));
+        format!(r#" filter="url(#{})""#, shadow_id)
+    } else {
+        String::new()
+    };
+
     // Check for 1D connector
     let begin_x = shape.cell_val("BeginX");
     let end_x = shape.cell_val("EndX");
     let is_1d = !begin_x.is_empty() && !end_x.is_empty();
+    let obj_type = shape.cell_val("ObjType").to_string();
     let is_1d_group = (shape.shape_type == "Group" || !shape.sub_shapes.is_empty()) && is_1d;
+    let shape_name = shape.name_u.to_lowercase();
+    let has_geometry = !shape.geometry.is_empty()
+        && shape.geometry.iter().any(|g| !g.no_show && !g.rows.is_empty());
 
     // Group rendering
     if (shape.shape_type == "Group" || !shape.sub_shapes.is_empty()) && !is_1d_group {
@@ -1166,7 +1399,7 @@ fn render_shape_svg(
         };
         let group_h = h_inch;
 
-        lines.push(format!(r#"<g transform="{}">"#, transform));
+        lines.push(format!(r#"<g transform="{}"{}>"#, transform, shadow_attr));
 
         // Render group's own geometry
         for geo in &shape.geometry {
@@ -1176,10 +1409,17 @@ fn render_shape_svg(
             }
             let geo_fill = if geo.no_fill { "none" } else { &fill };
             let geo_stroke = if geo.no_line { "none" } else { stroke };
-            lines.push(format!(
-                r#"<path d="{}" fill="{}" stroke="{}" stroke-width="{:.2}"/>"#,
-                path_d, geo_fill, geo_stroke, line_weight
-            ));
+            let mut style = format!(
+                r#"fill="{}" stroke="{}" stroke-width="{:.2}""#,
+                geo_fill, geo_stroke, line_weight
+            );
+            if fill_opacity < 0.99 && geo_fill != "none" {
+                style.push_str(&format!(r#" fill-opacity="{:.2}""#, fill_opacity));
+            }
+            if !dash_array.is_empty() && dash_array != "none" {
+                style.push_str(&format!(r#" stroke-dasharray="{}""#, dash_array));
+            }
+            lines.push(format!(r#"<path d="{}" {}/>"#, path_d, style));
         }
 
         // Render sub-shapes
@@ -1209,9 +1449,9 @@ fn render_shape_svg(
 
         // Group text
         if !shape.text.is_empty() && depth == 0 {
-            append_text_svg(text_layer, shape, page_h, w_px, h_px, theme_colors);
+            append_text_svg(text_layer, shape, page_h, w_px, h_px, theme_colors, is_1d);
         } else if !shape.text.is_empty() {
-            append_text_svg(&mut lines, shape, page_h, w_px, h_px, theme_colors);
+            append_text_svg(&mut lines, shape, page_h, w_px, h_px, theme_colors, is_1d);
         }
 
         return lines;
@@ -1219,18 +1459,34 @@ fn render_shape_svg(
 
     let transform = compute_transform(shape, page_h);
 
-    // 1D connector rendering
-    if is_1d {
+    // 1D connector rendering — comprehensive with geometry-based routing
+    let is_connector = is_1d || obj_type == "2";
+    if is_connector && is_1d {
+        let mut stroke_width = line_weight;
+        if stroke_width < 1.0 {
+            stroke_width = 1.5;
+        }
+
         let bx = begin_x.parse::<f64>().unwrap_or(0.0) * INCH_TO_PX;
         let by = (page_h - shape.cell_val("BeginY").parse::<f64>().unwrap_or(0.0)) * INCH_TO_PX;
         let ex_px = end_x.parse::<f64>().unwrap_or(0.0) * INCH_TO_PX;
         let ey_px = (page_h - shape.cell_val("EndY").parse::<f64>().unwrap_or(0.0)) * INCH_TO_PX;
 
         // Arrow markers
-        let end_arrow: i32 = shape.cell_val("EndArrow").parse().unwrap_or(0);
+        let mut end_arrow: i32 = shape.cell_val("EndArrow").parse().unwrap_or(0);
         let begin_arrow: i32 = shape.cell_val("BeginArrow").parse().unwrap_or(0);
         let end_arrow_size: i32 = shape.cell_val("EndArrowSize").parse().unwrap_or(2);
         let begin_arrow_size: i32 = shape.cell_val("BeginArrowSize").parse().unwrap_or(2);
+
+        // Default to arrow for connector-type shapes
+        let is_named_connector = shape_name.contains("connector");
+        if end_arrow == 0 && (obj_type == "2" || is_named_connector) {
+            let ea_cell = shape.cells.get("EndArrow");
+            if ea_cell.is_none() || ea_cell.map(|c| c.v.is_empty() && c.f.is_empty()).unwrap_or(true) {
+                end_arrow = 4;
+            }
+        }
+
         let marker_color = stroke.trim_start_matches('#');
         let mut marker_attrs = String::new();
         if begin_arrow > 0 {
@@ -1244,21 +1500,60 @@ fn render_shape_svg(
             marker_attrs.push_str(&format!(r#" marker-end="url(#{})""#, mid));
         }
 
-        let dash_attr = if !dash_array.is_empty() {
+        let dash_attr = if !dash_array.is_empty() && dash_array != "none" {
             format!(r#" stroke-dasharray="{}""#, dash_array)
         } else {
             String::new()
         };
 
-        lines.push(format!(
-            r#"<line x1="{:.2}" y1="{:.2}" x2="{:.2}" y2="{:.2}" stroke="{}" stroke-width="{:.2}"{}{}/>
+        // Try geometry-based routing first (for connectors with PinX)
+        let has_pin_x = shape.cells.contains_key("PinX");
+        if has_geometry && has_pin_x {
+            let points = build_connector_polyline(shape, page_h, bx, by);
+            if points.len() >= 2 {
+                let mut d_parts = vec![format!("M {:.2} {:.2}", points[0].0, points[0].1)];
+                for pt in &points[1..] {
+                    d_parts.push(format!("L {:.2} {:.2}", pt.0, pt.1));
+                }
+                let path_d = d_parts.join(" ");
+                lines.push(format!(
+                    r#"<path d="{}" fill="none" stroke="{}" stroke-width="{:.2}"{}{} stroke-linejoin="round"/>"#,
+                    path_d, stroke, stroke_width, dash_attr, marker_attrs
+                ));
+            } else {
+                // Fallback to straight line
+                lines.push(format!(
+                    r#"<line x1="{:.2}" y1="{:.2}" x2="{:.2}" y2="{:.2}" stroke="{}" stroke-width="{:.2}"{}{}/>
 "#,
-            bx, by, ex_px, ey_px, stroke, line_weight.max(1.5), dash_attr, marker_attrs
-        ));
+                    bx, by, ex_px, ey_px, stroke, stroke_width, dash_attr, marker_attrs
+                ));
+            }
+        } else {
+            // No geometry — use orthogonal routing when both axes differ
+            let dx = (ex_px - bx).abs();
+            let dy = (ey_px - by).abs();
+            if dx > 5.0 && dy > 5.0 {
+                // L/Z-shaped orthogonal route
+                let mid_y = (by + ey_px) / 2.0;
+                let path_d = format!(
+                    "M {:.2} {:.2} L {:.2} {:.2} L {:.2} {:.2} L {:.2} {:.2}",
+                    bx, by, bx, mid_y, ex_px, mid_y, ex_px, ey_px
+                );
+                lines.push(format!(
+                    r#"<path d="{}" fill="none" stroke="{}" stroke-width="{:.2}"{}{} stroke-linejoin="round"/>"#,
+                    path_d, stroke, stroke_width, dash_attr, marker_attrs
+                ));
+            } else {
+                // Straight line for horizontal/vertical connectors
+                lines.push(format!(
+                    r#"<line x1="{:.2}" y1="{:.2}" x2="{:.2}" y2="{:.2}" stroke="{}" stroke-width="{:.2}"{}{}/>
+"#,
+                    bx, by, ex_px, ey_px, stroke, stroke_width, dash_attr, marker_attrs
+                ));
+            }
+        }
     } else if !shape.geometry.is_empty() {
         // 2D shape with geometry
-        let _rounding = shape.cell_f64("Rounding") * INCH_TO_PX;
-
         for geo in &shape.geometry {
             let path_d = geometry_to_path(geo, w_inch, h_inch, shape.master_w, shape.master_h);
             if path_d.is_empty() {
@@ -1274,8 +1569,11 @@ fn render_shape_svg(
             if fill_opacity < 0.99 && geo_fill != "none" {
                 style.push_str(&format!(r#" fill-opacity="{:.2}""#, fill_opacity));
             }
-            if !dash_array.is_empty() {
+            if !dash_array.is_empty() && dash_array != "none" {
                 style.push_str(&format!(r#" stroke-dasharray="{}""#, dash_array));
+            }
+            if !shadow_attr.is_empty() {
+                style.push_str(&shadow_attr);
             }
             lines.push(format!(
                 r#"<path d="{}" {} transform="{}"/>"#,
@@ -1287,17 +1585,38 @@ fn render_shape_svg(
         let fallback_fill = if fill != "none" { &fill } else { "#FAFAFA" };
         let fallback_stroke = if stroke != "none" { stroke } else { "#CCCCCC" };
         lines.push(format!(
-            r#"<rect x="0" y="0" width="{:.2}" height="{:.2}" fill="{}" stroke="{}" stroke-width="{:.2}" rx="4" transform="{}"/>"#,
-            w_px, h_px, fallback_fill, fallback_stroke, line_weight.max(0.75), transform
+            r#"<rect x="0" y="0" width="{:.2}" height="{:.2}" fill="{}" stroke="{}" stroke-width="{:.2}" rx="4"{} transform="{}"/>"#,
+            w_px, h_px, fallback_fill, fallback_stroke, line_weight.max(0.75), shadow_attr, transform
         ));
+    }
+
+    // Embedded image rendering
+    if let Some(ref fd) = shape.foreign_data {
+        if let Some(ref data) = fd.data {
+            if !data.is_empty() {
+                let mime = match fd.foreign_type.as_str() {
+                    "PNG" | "png" => "image/png",
+                    "JPEG" | "jpeg" | "JPG" | "jpg" => "image/jpeg",
+                    "GIF" | "gif" => "image/gif",
+                    "BMP" | "bmp" => "image/bmp",
+                    "SVG" | "svg" => "image/svg+xml",
+                    _ => "image/png",
+                };
+                let img_url = format!("data:{};base64,{}", mime, data);
+                lines.push(format!(
+                    r#"<image x="0" y="0" width="{:.2}" height="{:.2}" href="{}" transform="{}"/>"#,
+                    w_px, h_px, img_url, transform
+                ));
+            }
+        }
     }
 
     // Text rendering
     if !shape.text.is_empty() {
         if depth == 0 {
-            append_text_svg(text_layer, shape, page_h, w_px, h_px, theme_colors);
+            append_text_svg(text_layer, shape, page_h, w_px, h_px, theme_colors, is_1d);
         } else {
-            append_text_svg(&mut lines, shape, page_h, w_px, h_px, theme_colors);
+            append_text_svg(&mut lines, shape, page_h, w_px, h_px, theme_colors, is_1d);
         }
     }
 
@@ -1312,6 +1631,7 @@ fn append_text_svg(
     _w_px: f64,
     _h_px: f64,
     theme_colors: &HashMap<String, String>,
+    is_1d: bool,
 ) {
     let text = &shape.text;
     if text.is_empty() {
@@ -1330,7 +1650,13 @@ fn append_text_svg(
     }
 
     let text_color = {
-        let c = resolve_color(&char_fmt.color, theme_colors);
+        // Check theme text color override first
+        let theme_tc = shape.theme_text_color.as_deref().unwrap_or("");
+        let c = if !theme_tc.is_empty() {
+            theme_tc.to_string()
+        } else {
+            resolve_color(&char_fmt.color, theme_colors)
+        };
         if c.is_empty() {
             "#000000".to_string()
         } else {
@@ -1363,13 +1689,36 @@ fn append_text_svg(
     } else {
         ""
     };
+    // Underline
+    let td = if style_bits & 4 != 0 {
+        r#" text-decoration="underline""#
+    } else {
+        ""
+    };
 
     let tx = pin_x;
     let ty = pin_y;
 
     let text_lines: Vec<&str> = text.split('\n').collect();
     let total_height = text_lines.len() as f64 * font_size * 1.2;
-    let start_y = ty - total_height / 2.0 + font_size * 0.6;
+
+    // For 1D connectors, offset text above the line
+    let y_offset = if is_1d { -font_size * 0.8 } else { 0.0 };
+
+    let start_y = ty - total_height / 2.0 + font_size * 0.6 + y_offset;
+
+    // For connector labels, add a white background for readability
+    if is_1d && !text.trim().is_empty() {
+        let text_w = text.len() as f64 * font_size * 0.55;
+        let bg_x = tx - text_w / 2.0 - 2.0;
+        let bg_y = start_y - font_size * 0.85;
+        let bg_w = text_w + 4.0;
+        let bg_h = total_height + 4.0;
+        lines.push(format!(
+            r#"<rect x="{:.2}" y="{:.2}" width="{:.2}" height="{:.2}" fill="white" fill-opacity="0.85" rx="2"/>"#,
+            bg_x, bg_y, bg_w, bg_h
+        ));
+    }
 
     for (j, tline) in text_lines.iter().enumerate() {
         let trimmed = tline.trim();
@@ -1379,9 +1728,9 @@ fn append_text_svg(
         let escaped = escape_xml(trimmed);
         let ly = start_y + j as f64 * font_size * 1.2;
         lines.push(format!(
-            r#"<text x="{:.2}" y="{:.2}" text-anchor="{}" font-family="{}" font-size="{:.1}" fill="{}"{}{}>
+            r#"<text x="{:.2}" y="{:.2}" text-anchor="{}" font-family="{}" font-size="{:.1}" fill="{}"{}{}{}>
 {}</text>"#,
-            tx, ly, text_anchor, font_family, font_size, text_color, fw, fs, escaped
+            tx, ly, text_anchor, font_family, font_size, text_color, fw, fs, td, escaped
         ));
     }
 }
