@@ -252,7 +252,9 @@ fn test_shape_default() {
 #[test]
 fn test_shape_cell_val() {
     let mut shape = Shape::default();
-    shape.cells.insert("Width".to_string(), CellValue::val("2.5"));
+    shape
+        .cells
+        .insert("Width".to_string(), CellValue::val("2.5"));
     assert_eq!(shape.cell_val("Width"), "2.5");
     assert_eq!(shape.cell_val("Missing"), "");
 }
@@ -260,7 +262,9 @@ fn test_shape_cell_val() {
 #[test]
 fn test_shape_cell_f64() {
     let mut shape = Shape::default();
-    shape.cells.insert("Width".to_string(), CellValue::val("2.5"));
+    shape
+        .cells
+        .insert("Width".to_string(), CellValue::val("2.5"));
     assert!((shape.cell_f64("Width") - 2.5).abs() < 1e-10);
     assert!((shape.cell_f64("Missing") - 0.0).abs() < 1e-10);
 }
@@ -268,7 +272,9 @@ fn test_shape_cell_f64() {
 #[test]
 fn test_shape_cell_f64_or() {
     let mut shape = Shape::default();
-    shape.cells.insert("Width".to_string(), CellValue::val("3.0"));
+    shape
+        .cells
+        .insert("Width".to_string(), CellValue::val("3.0"));
     assert!((shape.cell_f64_or("Width", 1.0) - 3.0).abs() < 1e-10);
     assert!((shape.cell_f64_or("Missing", 5.0) - 5.0).abs() < 1e-10);
 }
@@ -388,12 +394,20 @@ fn test_merge_shape_with_master_no_master() {
 fn test_merge_shape_with_master_cells() {
     let mut shape = Shape::default();
     shape.master = "1".to_string();
-    shape.cells.insert("Width".to_string(), CellValue::val("3.0"));
+    shape
+        .cells
+        .insert("Width".to_string(), CellValue::val("3.0"));
 
     let mut master_shape = Shape::default();
-    master_shape.cells.insert("Width".to_string(), CellValue::val("2.0"));
-    master_shape.cells.insert("Height".to_string(), CellValue::val("1.5"));
-    master_shape.cells.insert("FillForegnd".to_string(), CellValue::val("#FF0000"));
+    master_shape
+        .cells
+        .insert("Width".to_string(), CellValue::val("2.0"));
+    master_shape
+        .cells
+        .insert("Height".to_string(), CellValue::val("1.5"));
+    master_shape
+        .cells
+        .insert("FillForegnd".to_string(), CellValue::val("#FF0000"));
 
     let mut master_shapes = HashMap::new();
     master_shapes.insert("default".to_string(), master_shape);
@@ -421,8 +435,12 @@ fn test_merge_shape_with_master_geometry() {
         ..GeomSection::default()
     };
     master_shape.geometry.push(geo);
-    master_shape.cells.insert("Width".to_string(), CellValue::val("2.0"));
-    master_shape.cells.insert("Height".to_string(), CellValue::val("1.0"));
+    master_shape
+        .cells
+        .insert("Width".to_string(), CellValue::val("2.0"));
+    master_shape
+        .cells
+        .insert("Height".to_string(), CellValue::val("1.0"));
 
     let mut master_shapes = HashMap::new();
     master_shapes.insert("default".to_string(), master_shape);
@@ -510,10 +528,14 @@ fn test_merge_shape_group_skips_text() {
 fn test_merge_shape_parent_master_id() {
     let mut shape = Shape::default();
     // No master on shape, but parent master ID provided
-    shape.cells.insert("Width".to_string(), CellValue::val("3.0"));
+    shape
+        .cells
+        .insert("Width".to_string(), CellValue::val("3.0"));
 
     let mut master_shape = Shape::default();
-    master_shape.cells.insert("Height".to_string(), CellValue::val("2.0"));
+    master_shape
+        .cells
+        .insert("Height".to_string(), CellValue::val("2.0"));
 
     let mut master_shapes = HashMap::new();
     master_shapes.insert("default".to_string(), master_shape);
@@ -556,11 +578,21 @@ fn test_empty_page_svg() {
 fn test_simple_shape_svg() {
     let mut shape = Shape::default();
     shape.id = "1".to_string();
-    shape.cells.insert("PinX".to_string(), CellValue::val("4.25"));
-    shape.cells.insert("PinY".to_string(), CellValue::val("5.5"));
-    shape.cells.insert("Width".to_string(), CellValue::val("2.0"));
-    shape.cells.insert("Height".to_string(), CellValue::val("1.0"));
-    shape.cells.insert("FillForegnd".to_string(), CellValue::val("#4472C4"));
+    shape
+        .cells
+        .insert("PinX".to_string(), CellValue::val("4.25"));
+    shape
+        .cells
+        .insert("PinY".to_string(), CellValue::val("5.5"));
+    shape
+        .cells
+        .insert("Width".to_string(), CellValue::val("2.0"));
+    shape
+        .cells
+        .insert("Height".to_string(), CellValue::val("1.0"));
+    shape
+        .cells
+        .insert("FillForegnd".to_string(), CellValue::val("#4472C4"));
 
     let svg = empty_svg(&[shape]);
     assert!(svg.contains("<rect"));
@@ -571,11 +603,21 @@ fn test_simple_shape_svg() {
 fn test_shape_with_geometry_svg() {
     let mut shape = Shape::default();
     shape.id = "1".to_string();
-    shape.cells.insert("PinX".to_string(), CellValue::val("4.0"));
-    shape.cells.insert("PinY".to_string(), CellValue::val("5.0"));
-    shape.cells.insert("Width".to_string(), CellValue::val("2.0"));
-    shape.cells.insert("Height".to_string(), CellValue::val("1.0"));
-    shape.cells.insert("FillForegnd".to_string(), CellValue::val("#FF0000"));
+    shape
+        .cells
+        .insert("PinX".to_string(), CellValue::val("4.0"));
+    shape
+        .cells
+        .insert("PinY".to_string(), CellValue::val("5.0"));
+    shape
+        .cells
+        .insert("Width".to_string(), CellValue::val("2.0"));
+    shape
+        .cells
+        .insert("Height".to_string(), CellValue::val("1.0"));
+    shape
+        .cells
+        .insert("FillForegnd".to_string(), CellValue::val("#FF0000"));
 
     let mut row1 = GeomRow::new("MoveTo");
     row1.cells.insert("X".to_string(), CellValue::val("0"));
@@ -607,11 +649,21 @@ fn test_shape_with_geometry_svg() {
 fn test_1d_connector_svg() {
     let mut shape = Shape::default();
     shape.id = "10".to_string();
-    shape.cells.insert("BeginX".to_string(), CellValue::val("1.0"));
-    shape.cells.insert("BeginY".to_string(), CellValue::val("5.0"));
-    shape.cells.insert("EndX".to_string(), CellValue::val("5.0"));
-    shape.cells.insert("EndY".to_string(), CellValue::val("5.0"));
-    shape.cells.insert("EndArrow".to_string(), CellValue::val("4"));
+    shape
+        .cells
+        .insert("BeginX".to_string(), CellValue::val("1.0"));
+    shape
+        .cells
+        .insert("BeginY".to_string(), CellValue::val("5.0"));
+    shape
+        .cells
+        .insert("EndX".to_string(), CellValue::val("5.0"));
+    shape
+        .cells
+        .insert("EndY".to_string(), CellValue::val("5.0"));
+    shape
+        .cells
+        .insert("EndArrow".to_string(), CellValue::val("4"));
 
     let svg = empty_svg(&[shape]);
     assert!(svg.contains("<line") || svg.contains("<path"));
@@ -623,10 +675,18 @@ fn test_1d_connector_svg() {
 fn test_1d_connector_orthogonal() {
     let mut shape = Shape::default();
     shape.id = "11".to_string();
-    shape.cells.insert("BeginX".to_string(), CellValue::val("1.0"));
-    shape.cells.insert("BeginY".to_string(), CellValue::val("8.0"));
-    shape.cells.insert("EndX".to_string(), CellValue::val("5.0"));
-    shape.cells.insert("EndY".to_string(), CellValue::val("3.0"));
+    shape
+        .cells
+        .insert("BeginX".to_string(), CellValue::val("1.0"));
+    shape
+        .cells
+        .insert("BeginY".to_string(), CellValue::val("8.0"));
+    shape
+        .cells
+        .insert("EndX".to_string(), CellValue::val("5.0"));
+    shape
+        .cells
+        .insert("EndY".to_string(), CellValue::val("3.0"));
 
     let svg = empty_svg(&[shape]);
     // Should generate orthogonal path (both axes differ significantly)
@@ -638,9 +698,15 @@ fn test_1d_connector_orthogonal() {
 fn test_invisible_shape_skipped() {
     let mut shape = Shape::default();
     shape.id = "1".to_string();
-    shape.cells.insert("Visible".to_string(), CellValue::val("0"));
-    shape.cells.insert("Width".to_string(), CellValue::val("2.0"));
-    shape.cells.insert("Height".to_string(), CellValue::val("1.0"));
+    shape
+        .cells
+        .insert("Visible".to_string(), CellValue::val("0"));
+    shape
+        .cells
+        .insert("Width".to_string(), CellValue::val("2.0"));
+    shape
+        .cells
+        .insert("Height".to_string(), CellValue::val("1.0"));
     shape.text = "Should not appear".to_string();
 
     let svg = empty_svg(&[shape]);
@@ -651,10 +717,18 @@ fn test_invisible_shape_skipped() {
 fn test_text_rendering() {
     let mut shape = Shape::default();
     shape.id = "1".to_string();
-    shape.cells.insert("PinX".to_string(), CellValue::val("4.0"));
-    shape.cells.insert("PinY".to_string(), CellValue::val("5.0"));
-    shape.cells.insert("Width".to_string(), CellValue::val("2.0"));
-    shape.cells.insert("Height".to_string(), CellValue::val("1.0"));
+    shape
+        .cells
+        .insert("PinX".to_string(), CellValue::val("4.0"));
+    shape
+        .cells
+        .insert("PinY".to_string(), CellValue::val("5.0"));
+    shape
+        .cells
+        .insert("Width".to_string(), CellValue::val("2.0"));
+    shape
+        .cells
+        .insert("Height".to_string(), CellValue::val("1.0"));
     shape.text = "Hello World".to_string();
 
     let svg = empty_svg(&[shape]);
@@ -666,10 +740,18 @@ fn test_text_rendering() {
 fn test_text_xml_escaping() {
     let mut shape = Shape::default();
     shape.id = "1".to_string();
-    shape.cells.insert("PinX".to_string(), CellValue::val("4.0"));
-    shape.cells.insert("PinY".to_string(), CellValue::val("5.0"));
-    shape.cells.insert("Width".to_string(), CellValue::val("2.0"));
-    shape.cells.insert("Height".to_string(), CellValue::val("1.0"));
+    shape
+        .cells
+        .insert("PinX".to_string(), CellValue::val("4.0"));
+    shape
+        .cells
+        .insert("PinY".to_string(), CellValue::val("5.0"));
+    shape
+        .cells
+        .insert("Width".to_string(), CellValue::val("2.0"));
+    shape
+        .cells
+        .insert("Height".to_string(), CellValue::val("1.0"));
     shape.text = "A < B & C > D".to_string();
 
     let svg = empty_svg(&[shape]);
@@ -680,10 +762,18 @@ fn test_text_xml_escaping() {
 fn test_multiline_text() {
     let mut shape = Shape::default();
     shape.id = "1".to_string();
-    shape.cells.insert("PinX".to_string(), CellValue::val("4.0"));
-    shape.cells.insert("PinY".to_string(), CellValue::val("5.0"));
-    shape.cells.insert("Width".to_string(), CellValue::val("2.0"));
-    shape.cells.insert("Height".to_string(), CellValue::val("1.0"));
+    shape
+        .cells
+        .insert("PinX".to_string(), CellValue::val("4.0"));
+    shape
+        .cells
+        .insert("PinY".to_string(), CellValue::val("5.0"));
+    shape
+        .cells
+        .insert("Width".to_string(), CellValue::val("2.0"));
+    shape
+        .cells
+        .insert("Height".to_string(), CellValue::val("1.0"));
     shape.text = "Line 1\nLine 2\nLine 3".to_string();
 
     let svg = empty_svg(&[shape]);
@@ -699,13 +789,27 @@ fn test_multiline_text() {
 fn test_hatching_pattern_fill() {
     let mut shape = Shape::default();
     shape.id = "1".to_string();
-    shape.cells.insert("PinX".to_string(), CellValue::val("4.0"));
-    shape.cells.insert("PinY".to_string(), CellValue::val("5.0"));
-    shape.cells.insert("Width".to_string(), CellValue::val("2.0"));
-    shape.cells.insert("Height".to_string(), CellValue::val("1.0"));
-    shape.cells.insert("FillPattern".to_string(), CellValue::val("3"));
-    shape.cells.insert("FillForegnd".to_string(), CellValue::val("#0000FF"));
-    shape.cells.insert("FillBkgnd".to_string(), CellValue::val("#FFFFFF"));
+    shape
+        .cells
+        .insert("PinX".to_string(), CellValue::val("4.0"));
+    shape
+        .cells
+        .insert("PinY".to_string(), CellValue::val("5.0"));
+    shape
+        .cells
+        .insert("Width".to_string(), CellValue::val("2.0"));
+    shape
+        .cells
+        .insert("Height".to_string(), CellValue::val("1.0"));
+    shape
+        .cells
+        .insert("FillPattern".to_string(), CellValue::val("3"));
+    shape
+        .cells
+        .insert("FillForegnd".to_string(), CellValue::val("#0000FF"));
+    shape
+        .cells
+        .insert("FillBkgnd".to_string(), CellValue::val("#FFFFFF"));
 
     let svg = empty_svg(&[shape]);
     assert!(svg.contains("<pattern"));
@@ -716,13 +820,27 @@ fn test_hatching_pattern_fill() {
 fn test_gradient_fill() {
     let mut shape = Shape::default();
     shape.id = "1".to_string();
-    shape.cells.insert("PinX".to_string(), CellValue::val("4.0"));
-    shape.cells.insert("PinY".to_string(), CellValue::val("5.0"));
-    shape.cells.insert("Width".to_string(), CellValue::val("2.0"));
-    shape.cells.insert("Height".to_string(), CellValue::val("1.0"));
-    shape.cells.insert("FillPattern".to_string(), CellValue::val("25"));
-    shape.cells.insert("FillForegnd".to_string(), CellValue::val("#FF0000"));
-    shape.cells.insert("FillBkgnd".to_string(), CellValue::val("#0000FF"));
+    shape
+        .cells
+        .insert("PinX".to_string(), CellValue::val("4.0"));
+    shape
+        .cells
+        .insert("PinY".to_string(), CellValue::val("5.0"));
+    shape
+        .cells
+        .insert("Width".to_string(), CellValue::val("2.0"));
+    shape
+        .cells
+        .insert("Height".to_string(), CellValue::val("1.0"));
+    shape
+        .cells
+        .insert("FillPattern".to_string(), CellValue::val("25"));
+    shape
+        .cells
+        .insert("FillForegnd".to_string(), CellValue::val("#FF0000"));
+    shape
+        .cells
+        .insert("FillBkgnd".to_string(), CellValue::val("#0000FF"));
 
     let svg = empty_svg(&[shape]);
     assert!(svg.contains("<linearGradient") || svg.contains("<radialGradient"));
@@ -733,12 +851,24 @@ fn test_gradient_fill() {
 fn test_radial_gradient_fill() {
     let mut shape = Shape::default();
     shape.id = "1".to_string();
-    shape.cells.insert("PinX".to_string(), CellValue::val("4.0"));
-    shape.cells.insert("PinY".to_string(), CellValue::val("5.0"));
-    shape.cells.insert("Width".to_string(), CellValue::val("2.0"));
-    shape.cells.insert("Height".to_string(), CellValue::val("1.0"));
-    shape.cells.insert("FillPattern".to_string(), CellValue::val("29"));
-    shape.cells.insert("FillForegnd".to_string(), CellValue::val("#FF0000"));
+    shape
+        .cells
+        .insert("PinX".to_string(), CellValue::val("4.0"));
+    shape
+        .cells
+        .insert("PinY".to_string(), CellValue::val("5.0"));
+    shape
+        .cells
+        .insert("Width".to_string(), CellValue::val("2.0"));
+    shape
+        .cells
+        .insert("Height".to_string(), CellValue::val("1.0"));
+    shape
+        .cells
+        .insert("FillPattern".to_string(), CellValue::val("29"));
+    shape
+        .cells
+        .insert("FillForegnd".to_string(), CellValue::val("#FF0000"));
 
     let svg = empty_svg(&[shape]);
     assert!(svg.contains("<radialGradient"));
@@ -748,12 +878,24 @@ fn test_radial_gradient_fill() {
 fn test_dashed_line() {
     let mut shape = Shape::default();
     shape.id = "1".to_string();
-    shape.cells.insert("PinX".to_string(), CellValue::val("4.0"));
-    shape.cells.insert("PinY".to_string(), CellValue::val("5.0"));
-    shape.cells.insert("Width".to_string(), CellValue::val("2.0"));
-    shape.cells.insert("Height".to_string(), CellValue::val("1.0"));
-    shape.cells.insert("LinePattern".to_string(), CellValue::val("2"));
-    shape.cells.insert("FillForegnd".to_string(), CellValue::val("#FFFFFF"));
+    shape
+        .cells
+        .insert("PinX".to_string(), CellValue::val("4.0"));
+    shape
+        .cells
+        .insert("PinY".to_string(), CellValue::val("5.0"));
+    shape
+        .cells
+        .insert("Width".to_string(), CellValue::val("2.0"));
+    shape
+        .cells
+        .insert("Height".to_string(), CellValue::val("1.0"));
+    shape
+        .cells
+        .insert("LinePattern".to_string(), CellValue::val("2"));
+    shape
+        .cells
+        .insert("FillForegnd".to_string(), CellValue::val("#FFFFFF"));
 
     let mut row1 = GeomRow::new("MoveTo");
     row1.cells.insert("X".to_string(), CellValue::val("0"));
@@ -775,12 +917,24 @@ fn test_dashed_line() {
 fn test_no_line_pattern() {
     let mut shape = Shape::default();
     shape.id = "1".to_string();
-    shape.cells.insert("PinX".to_string(), CellValue::val("4.0"));
-    shape.cells.insert("PinY".to_string(), CellValue::val("5.0"));
-    shape.cells.insert("Width".to_string(), CellValue::val("2.0"));
-    shape.cells.insert("Height".to_string(), CellValue::val("1.0"));
-    shape.cells.insert("LinePattern".to_string(), CellValue::val("0"));
-    shape.cells.insert("FillForegnd".to_string(), CellValue::val("#FF0000"));
+    shape
+        .cells
+        .insert("PinX".to_string(), CellValue::val("4.0"));
+    shape
+        .cells
+        .insert("PinY".to_string(), CellValue::val("5.0"));
+    shape
+        .cells
+        .insert("Width".to_string(), CellValue::val("2.0"));
+    shape
+        .cells
+        .insert("Height".to_string(), CellValue::val("1.0"));
+    shape
+        .cells
+        .insert("LinePattern".to_string(), CellValue::val("0"));
+    shape
+        .cells
+        .insert("FillForegnd".to_string(), CellValue::val("#FF0000"));
 
     let mut row1 = GeomRow::new("MoveTo");
     row1.cells.insert("X".to_string(), CellValue::val("0"));
@@ -802,11 +956,21 @@ fn test_no_line_pattern() {
 fn test_no_fill_geometry() {
     let mut shape = Shape::default();
     shape.id = "1".to_string();
-    shape.cells.insert("PinX".to_string(), CellValue::val("4.0"));
-    shape.cells.insert("PinY".to_string(), CellValue::val("5.0"));
-    shape.cells.insert("Width".to_string(), CellValue::val("2.0"));
-    shape.cells.insert("Height".to_string(), CellValue::val("1.0"));
-    shape.cells.insert("FillPattern".to_string(), CellValue::val("0"));
+    shape
+        .cells
+        .insert("PinX".to_string(), CellValue::val("4.0"));
+    shape
+        .cells
+        .insert("PinY".to_string(), CellValue::val("5.0"));
+    shape
+        .cells
+        .insert("Width".to_string(), CellValue::val("2.0"));
+    shape
+        .cells
+        .insert("Height".to_string(), CellValue::val("1.0"));
+    shape
+        .cells
+        .insert("FillPattern".to_string(), CellValue::val("0"));
 
     let mut row1 = GeomRow::new("MoveTo");
     row1.cells.insert("X".to_string(), CellValue::val("0"));
@@ -829,18 +993,36 @@ fn test_group_shape() {
     let mut group = Shape::default();
     group.id = "1".to_string();
     group.shape_type = "Group".to_string();
-    group.cells.insert("PinX".to_string(), CellValue::val("4.0"));
-    group.cells.insert("PinY".to_string(), CellValue::val("5.0"));
-    group.cells.insert("Width".to_string(), CellValue::val("3.0"));
-    group.cells.insert("Height".to_string(), CellValue::val("2.0"));
+    group
+        .cells
+        .insert("PinX".to_string(), CellValue::val("4.0"));
+    group
+        .cells
+        .insert("PinY".to_string(), CellValue::val("5.0"));
+    group
+        .cells
+        .insert("Width".to_string(), CellValue::val("3.0"));
+    group
+        .cells
+        .insert("Height".to_string(), CellValue::val("2.0"));
 
     let mut child = Shape::default();
     child.id = "2".to_string();
-    child.cells.insert("PinX".to_string(), CellValue::val("1.5"));
-    child.cells.insert("PinY".to_string(), CellValue::val("1.0"));
-    child.cells.insert("Width".to_string(), CellValue::val("1.0"));
-    child.cells.insert("Height".to_string(), CellValue::val("0.5"));
-    child.cells.insert("FillForegnd".to_string(), CellValue::val("#00FF00"));
+    child
+        .cells
+        .insert("PinX".to_string(), CellValue::val("1.5"));
+    child
+        .cells
+        .insert("PinY".to_string(), CellValue::val("1.0"));
+    child
+        .cells
+        .insert("Width".to_string(), CellValue::val("1.0"));
+    child
+        .cells
+        .insert("Height".to_string(), CellValue::val("0.5"));
+    child
+        .cells
+        .insert("FillForegnd".to_string(), CellValue::val("#00FF00"));
     group.sub_shapes.push(child);
 
     let svg = empty_svg(&[group]);
@@ -852,12 +1034,24 @@ fn test_group_shape() {
 fn test_fill_opacity() {
     let mut shape = Shape::default();
     shape.id = "1".to_string();
-    shape.cells.insert("PinX".to_string(), CellValue::val("4.0"));
-    shape.cells.insert("PinY".to_string(), CellValue::val("5.0"));
-    shape.cells.insert("Width".to_string(), CellValue::val("2.0"));
-    shape.cells.insert("Height".to_string(), CellValue::val("1.0"));
-    shape.cells.insert("FillForegnd".to_string(), CellValue::val("#FF0000"));
-    shape.cells.insert("FillForegndTrans".to_string(), CellValue::val("0.5"));
+    shape
+        .cells
+        .insert("PinX".to_string(), CellValue::val("4.0"));
+    shape
+        .cells
+        .insert("PinY".to_string(), CellValue::val("5.0"));
+    shape
+        .cells
+        .insert("Width".to_string(), CellValue::val("2.0"));
+    shape
+        .cells
+        .insert("Height".to_string(), CellValue::val("1.0"));
+    shape
+        .cells
+        .insert("FillForegnd".to_string(), CellValue::val("#FF0000"));
+    shape
+        .cells
+        .insert("FillForegndTrans".to_string(), CellValue::val("0.5"));
 
     let mut row1 = GeomRow::new("MoveTo");
     row1.cells.insert("X".to_string(), CellValue::val("0"));
@@ -879,19 +1073,37 @@ fn test_fill_opacity() {
 fn test_background_shapes() {
     let mut fg_shape = Shape::default();
     fg_shape.id = "1".to_string();
-    fg_shape.cells.insert("PinX".to_string(), CellValue::val("4.0"));
-    fg_shape.cells.insert("PinY".to_string(), CellValue::val("5.0"));
-    fg_shape.cells.insert("Width".to_string(), CellValue::val("2.0"));
-    fg_shape.cells.insert("Height".to_string(), CellValue::val("1.0"));
+    fg_shape
+        .cells
+        .insert("PinX".to_string(), CellValue::val("4.0"));
+    fg_shape
+        .cells
+        .insert("PinY".to_string(), CellValue::val("5.0"));
+    fg_shape
+        .cells
+        .insert("Width".to_string(), CellValue::val("2.0"));
+    fg_shape
+        .cells
+        .insert("Height".to_string(), CellValue::val("1.0"));
     fg_shape.text = "Foreground".to_string();
 
     let mut bg_shape = Shape::default();
     bg_shape.id = "2".to_string();
-    bg_shape.cells.insert("PinX".to_string(), CellValue::val("4.25"));
-    bg_shape.cells.insert("PinY".to_string(), CellValue::val("5.5"));
-    bg_shape.cells.insert("Width".to_string(), CellValue::val("8.5"));
-    bg_shape.cells.insert("Height".to_string(), CellValue::val("11.0"));
-    bg_shape.cells.insert("FillForegnd".to_string(), CellValue::val("#EEEEEE"));
+    bg_shape
+        .cells
+        .insert("PinX".to_string(), CellValue::val("4.25"));
+    bg_shape
+        .cells
+        .insert("PinY".to_string(), CellValue::val("5.5"));
+    bg_shape
+        .cells
+        .insert("Width".to_string(), CellValue::val("8.5"));
+    bg_shape
+        .cells
+        .insert("Height".to_string(), CellValue::val("11.0"));
+    bg_shape
+        .cells
+        .insert("FillForegnd".to_string(), CellValue::val("#EEEEEE"));
 
     let bg_shapes = vec![bg_shape];
     let svg = render::shapes_to_svg(
@@ -914,11 +1126,21 @@ fn test_background_shapes() {
 fn test_layer_visibility() {
     let mut shape = Shape::default();
     shape.id = "1".to_string();
-    shape.cells.insert("PinX".to_string(), CellValue::val("4.0"));
-    shape.cells.insert("PinY".to_string(), CellValue::val("5.0"));
-    shape.cells.insert("Width".to_string(), CellValue::val("2.0"));
-    shape.cells.insert("Height".to_string(), CellValue::val("1.0"));
-    shape.cells.insert("LayerMember".to_string(), CellValue::val("0"));
+    shape
+        .cells
+        .insert("PinX".to_string(), CellValue::val("4.0"));
+    shape
+        .cells
+        .insert("PinY".to_string(), CellValue::val("5.0"));
+    shape
+        .cells
+        .insert("Width".to_string(), CellValue::val("2.0"));
+    shape
+        .cells
+        .insert("Height".to_string(), CellValue::val("1.0"));
+    shape
+        .cells
+        .insert("LayerMember".to_string(), CellValue::val("0"));
     shape.text = "Hidden by layer".to_string();
 
     let mut layers = HashMap::new();
@@ -953,11 +1175,21 @@ fn test_layer_visibility() {
 fn test_ellipse_geometry() {
     let mut shape = Shape::default();
     shape.id = "1".to_string();
-    shape.cells.insert("PinX".to_string(), CellValue::val("4.0"));
-    shape.cells.insert("PinY".to_string(), CellValue::val("5.0"));
-    shape.cells.insert("Width".to_string(), CellValue::val("2.0"));
-    shape.cells.insert("Height".to_string(), CellValue::val("2.0"));
-    shape.cells.insert("FillForegnd".to_string(), CellValue::val("#FF0000"));
+    shape
+        .cells
+        .insert("PinX".to_string(), CellValue::val("4.0"));
+    shape
+        .cells
+        .insert("PinY".to_string(), CellValue::val("5.0"));
+    shape
+        .cells
+        .insert("Width".to_string(), CellValue::val("2.0"));
+    shape
+        .cells
+        .insert("Height".to_string(), CellValue::val("2.0"));
+    shape
+        .cells
+        .insert("FillForegnd".to_string(), CellValue::val("#FF0000"));
 
     let mut row = GeomRow::new("Ellipse");
     row.cells.insert("X".to_string(), CellValue::val("1.0"));
@@ -981,10 +1213,18 @@ fn test_ellipse_geometry() {
 fn test_arc_geometry() {
     let mut shape = Shape::default();
     shape.id = "1".to_string();
-    shape.cells.insert("PinX".to_string(), CellValue::val("4.0"));
-    shape.cells.insert("PinY".to_string(), CellValue::val("5.0"));
-    shape.cells.insert("Width".to_string(), CellValue::val("2.0"));
-    shape.cells.insert("Height".to_string(), CellValue::val("1.0"));
+    shape
+        .cells
+        .insert("PinX".to_string(), CellValue::val("4.0"));
+    shape
+        .cells
+        .insert("PinY".to_string(), CellValue::val("5.0"));
+    shape
+        .cells
+        .insert("Width".to_string(), CellValue::val("2.0"));
+    shape
+        .cells
+        .insert("Height".to_string(), CellValue::val("1.0"));
 
     let mut row1 = GeomRow::new("MoveTo");
     row1.cells.insert("X".to_string(), CellValue::val("0"));
@@ -1008,11 +1248,21 @@ fn test_arc_geometry() {
 fn test_no_show_geometry_skipped() {
     let mut shape = Shape::default();
     shape.id = "1".to_string();
-    shape.cells.insert("PinX".to_string(), CellValue::val("4.0"));
-    shape.cells.insert("PinY".to_string(), CellValue::val("5.0"));
-    shape.cells.insert("Width".to_string(), CellValue::val("2.0"));
-    shape.cells.insert("Height".to_string(), CellValue::val("1.0"));
-    shape.cells.insert("FillForegnd".to_string(), CellValue::val("#FF0000"));
+    shape
+        .cells
+        .insert("PinX".to_string(), CellValue::val("4.0"));
+    shape
+        .cells
+        .insert("PinY".to_string(), CellValue::val("5.0"));
+    shape
+        .cells
+        .insert("Width".to_string(), CellValue::val("2.0"));
+    shape
+        .cells
+        .insert("Height".to_string(), CellValue::val("1.0"));
+    shape
+        .cells
+        .insert("FillForegnd".to_string(), CellValue::val("#FF0000"));
 
     let mut row1 = GeomRow::new("MoveTo");
     row1.cells.insert("X".to_string(), CellValue::val("0"));
@@ -1037,12 +1287,24 @@ fn test_no_show_geometry_skipped() {
 fn test_connector_label_background() {
     let mut shape = Shape::default();
     shape.id = "20".to_string();
-    shape.cells.insert("BeginX".to_string(), CellValue::val("1.0"));
-    shape.cells.insert("BeginY".to_string(), CellValue::val("5.0"));
-    shape.cells.insert("EndX".to_string(), CellValue::val("5.0"));
-    shape.cells.insert("EndY".to_string(), CellValue::val("5.0"));
-    shape.cells.insert("PinX".to_string(), CellValue::val("3.0"));
-    shape.cells.insert("PinY".to_string(), CellValue::val("5.0"));
+    shape
+        .cells
+        .insert("BeginX".to_string(), CellValue::val("1.0"));
+    shape
+        .cells
+        .insert("BeginY".to_string(), CellValue::val("5.0"));
+    shape
+        .cells
+        .insert("EndX".to_string(), CellValue::val("5.0"));
+    shape
+        .cells
+        .insert("EndY".to_string(), CellValue::val("5.0"));
+    shape
+        .cells
+        .insert("PinX".to_string(), CellValue::val("3.0"));
+    shape
+        .cells
+        .insert("PinY".to_string(), CellValue::val("5.0"));
     shape.text = "Connection".to_string();
 
     let svg = empty_svg(&[shape]);
@@ -1059,12 +1321,24 @@ fn test_connector_label_background() {
 fn test_hatching_horizontal_lines() {
     let mut shape = Shape::default();
     shape.id = "h2".to_string();
-    shape.cells.insert("PinX".to_string(), CellValue::val("4.0"));
-    shape.cells.insert("PinY".to_string(), CellValue::val("5.0"));
-    shape.cells.insert("Width".to_string(), CellValue::val("2.0"));
-    shape.cells.insert("Height".to_string(), CellValue::val("1.0"));
-    shape.cells.insert("FillPattern".to_string(), CellValue::val("2"));
-    shape.cells.insert("FillForegnd".to_string(), CellValue::val("#000000"));
+    shape
+        .cells
+        .insert("PinX".to_string(), CellValue::val("4.0"));
+    shape
+        .cells
+        .insert("PinY".to_string(), CellValue::val("5.0"));
+    shape
+        .cells
+        .insert("Width".to_string(), CellValue::val("2.0"));
+    shape
+        .cells
+        .insert("Height".to_string(), CellValue::val("1.0"));
+    shape
+        .cells
+        .insert("FillPattern".to_string(), CellValue::val("2"));
+    shape
+        .cells
+        .insert("FillForegnd".to_string(), CellValue::val("#000000"));
 
     let svg = empty_svg(&[shape]);
     assert!(svg.contains("<pattern id=\"fpat_h2_2\""));
@@ -1075,12 +1349,24 @@ fn test_hatching_horizontal_lines() {
 fn test_hatching_crosshatch() {
     let mut shape = Shape::default();
     shape.id = "h6".to_string();
-    shape.cells.insert("PinX".to_string(), CellValue::val("4.0"));
-    shape.cells.insert("PinY".to_string(), CellValue::val("5.0"));
-    shape.cells.insert("Width".to_string(), CellValue::val("2.0"));
-    shape.cells.insert("Height".to_string(), CellValue::val("1.0"));
-    shape.cells.insert("FillPattern".to_string(), CellValue::val("6"));
-    shape.cells.insert("FillForegnd".to_string(), CellValue::val("#000000"));
+    shape
+        .cells
+        .insert("PinX".to_string(), CellValue::val("4.0"));
+    shape
+        .cells
+        .insert("PinY".to_string(), CellValue::val("5.0"));
+    shape
+        .cells
+        .insert("Width".to_string(), CellValue::val("2.0"));
+    shape
+        .cells
+        .insert("Height".to_string(), CellValue::val("1.0"));
+    shape
+        .cells
+        .insert("FillPattern".to_string(), CellValue::val("6"));
+    shape
+        .cells
+        .insert("FillForegnd".to_string(), CellValue::val("#000000"));
 
     let svg = empty_svg(&[shape]);
     assert!(svg.contains("<pattern id=\"fpat_h6_6\""));
@@ -1090,12 +1376,24 @@ fn test_hatching_crosshatch() {
 fn test_hatching_diagonal_crosshatch() {
     let mut shape = Shape::default();
     shape.id = "h10".to_string();
-    shape.cells.insert("PinX".to_string(), CellValue::val("4.0"));
-    shape.cells.insert("PinY".to_string(), CellValue::val("5.0"));
-    shape.cells.insert("Width".to_string(), CellValue::val("2.0"));
-    shape.cells.insert("Height".to_string(), CellValue::val("1.0"));
-    shape.cells.insert("FillPattern".to_string(), CellValue::val("10"));
-    shape.cells.insert("FillForegnd".to_string(), CellValue::val("#000000"));
+    shape
+        .cells
+        .insert("PinX".to_string(), CellValue::val("4.0"));
+    shape
+        .cells
+        .insert("PinY".to_string(), CellValue::val("5.0"));
+    shape
+        .cells
+        .insert("Width".to_string(), CellValue::val("2.0"));
+    shape
+        .cells
+        .insert("Height".to_string(), CellValue::val("1.0"));
+    shape
+        .cells
+        .insert("FillPattern".to_string(), CellValue::val("10"));
+    shape
+        .cells
+        .insert("FillForegnd".to_string(), CellValue::val("#000000"));
 
     let svg = empty_svg(&[shape]);
     assert!(svg.contains("<pattern id=\"fpat_h10_10\""));
@@ -1105,12 +1403,24 @@ fn test_hatching_diagonal_crosshatch() {
 fn test_hatching_dense_dots() {
     let mut shape = Shape::default();
     shape.id = "h15".to_string();
-    shape.cells.insert("PinX".to_string(), CellValue::val("4.0"));
-    shape.cells.insert("PinY".to_string(), CellValue::val("5.0"));
-    shape.cells.insert("Width".to_string(), CellValue::val("2.0"));
-    shape.cells.insert("Height".to_string(), CellValue::val("1.0"));
-    shape.cells.insert("FillPattern".to_string(), CellValue::val("15"));
-    shape.cells.insert("FillForegnd".to_string(), CellValue::val("#000000"));
+    shape
+        .cells
+        .insert("PinX".to_string(), CellValue::val("4.0"));
+    shape
+        .cells
+        .insert("PinY".to_string(), CellValue::val("5.0"));
+    shape
+        .cells
+        .insert("Width".to_string(), CellValue::val("2.0"));
+    shape
+        .cells
+        .insert("Height".to_string(), CellValue::val("1.0"));
+    shape
+        .cells
+        .insert("FillPattern".to_string(), CellValue::val("15"));
+    shape
+        .cells
+        .insert("FillForegnd".to_string(), CellValue::val("#000000"));
 
     let svg = empty_svg(&[shape]);
     assert!(svg.contains("<pattern id=\"fpat_h15_15\""));
@@ -1125,10 +1435,18 @@ fn test_hatching_dense_dots() {
 fn test_theme_color_in_fill() {
     let mut shape = Shape::default();
     shape.id = "1".to_string();
-    shape.cells.insert("PinX".to_string(), CellValue::val("4.0"));
-    shape.cells.insert("PinY".to_string(), CellValue::val("5.0"));
-    shape.cells.insert("Width".to_string(), CellValue::val("2.0"));
-    shape.cells.insert("Height".to_string(), CellValue::val("1.0"));
+    shape
+        .cells
+        .insert("PinX".to_string(), CellValue::val("4.0"));
+    shape
+        .cells
+        .insert("PinY".to_string(), CellValue::val("5.0"));
+    shape
+        .cells
+        .insert("Width".to_string(), CellValue::val("2.0"));
+    shape
+        .cells
+        .insert("Height".to_string(), CellValue::val("1.0"));
     shape.cells.insert(
         "FillForegnd".to_string(),
         CellValue::new("#4472C4", "THEMEVAL(\"accent1\",0)"),
