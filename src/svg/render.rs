@@ -41,30 +41,30 @@ static VISIO_COLORS: &[(i32, &str)] = &[
 
 /// Complete Visio line pattern dash arrays (all 23 patterns).
 static LINE_PATTERNS: &[(i32, &str)] = &[
-    (0, "none"),           // No line
-    (1, ""),               // Solid
-    (2, "4,3"),            // Dash
-    (3, "1,3"),            // Dot
-    (4, "4,3,1,3"),        // Dash-dot
+    (0, "none"),          // No line
+    (1, ""),              // Solid
+    (2, "4,3"),           // Dash
+    (3, "1,3"),           // Dot
+    (4, "4,3,1,3"),       // Dash-dot
     (5, "4,3,1,3,1,3"),   // Dash-dot-dot
-    (6, "8,3"),            // Long dash
-    (7, "1,1"),            // Dense dot
-    (8, "8,3,1,3"),        // Long dash-dot
+    (6, "8,3"),           // Long dash
+    (7, "1,1"),           // Dense dot
+    (8, "8,3,1,3"),       // Long dash-dot
     (9, "8,3,1,3,1,3"),   // Long dash-dot-dot
-    (10, "12,6"),          // Extra-long dash
+    (10, "12,6"),         // Extra-long dash
     (11, "12,3,1,3"),     // Extra-long dash-dot
     (12, "12,3,1,3,1,3"), // Extra-long dash-dot-dot
-    (13, "2,2"),           // Short dash
-    (14, "2,2,6,2"),       // Short dash-long dash
-    (15, "2,2,6,2,6,2"),   // Short dash-long dash-long dash
-    (16, "6,3,6,3"),       // Dash-dash
-    (17, "1,1,6,1"),       // Dot-dash (tight)
-    (18, "10,2"),          // Heavy dash
-    (19, "1,3,6,3"),       // Dot-long dash
-    (20, "1,3,6,3,6,3"),   // Dot-long dash-long dash
-    (21, "1,3,1,3,6,3"),   // Dot-dot-long dash
-    (22, "6,1"),           // Tight dash
-    (23, "1,1,1,1,6,1"),   // Tight dot-dot-dash
+    (13, "2,2"),          // Short dash
+    (14, "2,2,6,2"),      // Short dash-long dash
+    (15, "2,2,6,2,6,2"),  // Short dash-long dash-long dash
+    (16, "6,3,6,3"),      // Dash-dash
+    (17, "1,1,6,1"),      // Dot-dash (tight)
+    (18, "10,2"),         // Heavy dash
+    (19, "1,3,6,3"),      // Dot-long dash
+    (20, "1,3,6,3,6,3"),  // Dot-long dash-long dash
+    (21, "1,3,1,3,6,3"),  // Dot-dot-long dash
+    (22, "6,1"),          // Tight dash
+    (23, "1,1,1,1,6,1"),  // Tight dot-dot-dash
 ];
 
 /// Arrow size scale factors.
@@ -80,16 +80,34 @@ static ARROW_SIZES: &[(i32, f64)] = &[
 
 /// Gradient angle mapping for fill patterns 25-40.
 static PATTERN_ANGLES: &[(i32, f64)] = &[
-    (25, 270.0), (26, 0.0), (27, 90.0), (28, 180.0),
-    (33, 315.0), (34, 45.0), (35, 135.0), (36, 225.0),
+    (25, 270.0),
+    (26, 0.0),
+    (27, 90.0),
+    (28, 180.0),
+    (33, 315.0),
+    (34, 45.0),
+    (35, 135.0),
+    (36, 225.0),
 ];
 
 /// QuickStyle fill color to theme color name mapping.
 static QUICKSTYLE_FILL_MAP: &[(i32, &str)] = &[
-    (0, "dk1"), (1, "lt1"), (2, "accent1"), (3, "accent2"),
-    (4, "accent3"), (5, "accent4"), (6, "accent5"), (7, "accent6"),
-    (100, "dk1"), (101, "lt1"), (102, "accent1"), (103, "accent2"),
-    (104, "accent3"), (105, "accent4"), (106, "accent5"), (107, "accent6"),
+    (0, "dk1"),
+    (1, "lt1"),
+    (2, "accent1"),
+    (3, "accent2"),
+    (4, "accent3"),
+    (5, "accent4"),
+    (6, "accent5"),
+    (7, "accent6"),
+    (100, "dk1"),
+    (101, "lt1"),
+    (102, "accent1"),
+    (103, "accent2"),
+    (104, "accent3"),
+    (105, "accent4"),
+    (106, "accent5"),
+    (107, "accent6"),
 ];
 
 fn arrow_size(idx: i32) -> f64 {
@@ -804,12 +822,7 @@ fn append_elliptical_arc(
 }
 
 /// Build connector polyline from geometry rows, transforming to page coordinates.
-fn build_connector_polyline(
-    shape: &Shape,
-    page_h: f64,
-    bx: f64,
-    by: f64,
-) -> Vec<(f64, f64)> {
+fn build_connector_polyline(shape: &Shape, page_h: f64, bx: f64, by: f64) -> Vec<(f64, f64)> {
     let pin_x = shape.cell_f64("PinX");
     let pin_y = shape.cell_f64("PinY");
     let loc_pin_x = shape.cell_f64("LocPinX");
@@ -828,8 +841,8 @@ fn build_connector_polyline(
         for row in &geo.rows {
             let rt = row.row_type.as_str();
             match rt {
-                "MoveTo" | "LineTo" | "ArcTo" | "EllipticalArcTo" | "NURBSTo"
-                | "SplineStart" | "SplineKnot" => {
+                "MoveTo" | "LineTo" | "ArcTo" | "EllipticalArcTo" | "NURBSTo" | "SplineStart"
+                | "SplineKnot" => {
                     let x_cell = row.cells.get("X");
                     let y_cell = row.cells.get("Y");
                     // Both X and Y must be present
@@ -1075,11 +1088,19 @@ pub fn shapes_to_svg(
                 let line = match pt {
                     2 => format!(
                         r#"<line x1="0" y1="{}" x2="{}" y2="{}" stroke="{}" stroke-width="{}"/>"#,
-                        spacing / 2, spacing, spacing / 2, pat.fg, sw
+                        spacing / 2,
+                        spacing,
+                        spacing / 2,
+                        pat.fg,
+                        sw
                     ),
                     3 => format!(
                         r#"<line x1="{}" y1="0" x2="{}" y2="{}" stroke="{}" stroke-width="{}"/>"#,
-                        spacing / 2, spacing / 2, spacing, pat.fg, sw
+                        spacing / 2,
+                        spacing / 2,
+                        spacing,
+                        pat.fg,
+                        sw
                     ),
                     4 => format!(
                         r#"<line x1="0" y1="{}" x2="{}" y2="0" stroke="{}" stroke-width="{}"/>"#,
@@ -1290,16 +1311,25 @@ fn render_shape_svg(
 
         // Use gradient stops from shape if available
         let stops = if !shape.gradient_stops.is_empty() {
-            shape.gradient_stops.iter().flatten().map(|gs| {
-                GradientStop {
+            shape
+                .gradient_stops
+                .iter()
+                .flatten()
+                .map(|gs| GradientStop {
                     position: gs.position,
                     color: gs.color.clone(),
-                }
-            }).collect()
+                })
+                .collect()
         } else {
             vec![
-                GradientStop { position: 0.0, color: fg.clone() },
-                GradientStop { position: 100.0, color: bg.clone() },
+                GradientStop {
+                    position: 0.0,
+                    color: fg.clone(),
+                },
+                GradientStop {
+                    position: 100.0,
+                    color: bg.clone(),
+                },
             ]
         };
 
@@ -1387,7 +1417,10 @@ fn render_shape_svg(
     let is_1d_group = (shape.shape_type == "Group" || !shape.sub_shapes.is_empty()) && is_1d;
     let shape_name = shape.name_u.to_lowercase();
     let has_geometry = !shape.geometry.is_empty()
-        && shape.geometry.iter().any(|g| !g.no_show && !g.rows.is_empty());
+        && shape
+            .geometry
+            .iter()
+            .any(|g| !g.no_show && !g.rows.is_empty());
 
     // Group rendering
     if (shape.shape_type == "Group" || !shape.sub_shapes.is_empty()) && !is_1d_group {
@@ -1482,7 +1515,11 @@ fn render_shape_svg(
         let is_named_connector = shape_name.contains("connector");
         if end_arrow == 0 && (obj_type == "2" || is_named_connector) {
             let ea_cell = shape.cells.get("EndArrow");
-            if ea_cell.is_none() || ea_cell.map(|c| c.v.is_empty() && c.f.is_empty()).unwrap_or(true) {
+            if ea_cell.is_none()
+                || ea_cell
+                    .map(|c| c.v.is_empty() && c.f.is_empty())
+                    .unwrap_or(true)
+            {
                 end_arrow = 4;
             }
         }
